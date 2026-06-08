@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Hospital Token System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>
+            <i class="fas fa-tachometer-alt"></i>
+            Dashboard
+        </h1>
+        <p>Welcome, {{ user.full_name }}! Here's your account overview.</p>
+    </div>
+</div>
+
+<!-- User Profile Card -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <h3><i class="fas fa-user-circle"></i> Your Profile</h3>
+            <div style="margin-top: 1rem;">
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>Name:</strong> {{ user.full_name }}
+                </p>
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>Mobile:</strong> {{ user.mobile_number }}
+                </p>
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>Email:</strong> {{ user.email }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <h3><i class="fas fa-chart-bar"></i> Quick Stats</h3>
+            <div style="margin-top: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="text-align: center; padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                        <p class="text-muted">Total Tokens</p>
+                        <p style="font-size: 2rem; font-weight: bold;">{{ tokens|length }}</p>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                        <p class="text-muted">Active Tokens</p>
+                        <p style="font-size: 2rem; font-weight: bold; color: var(--primary-color);">
+                            {{ (tokens|selectattr('status', 'equalto', 'waiting')|list|length) + (tokens|selectattr('status', 'equalto', 'in_progress')|list|length) }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <a href="{{ url_for('token.departments') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Generate New Token
+    </a>
+    <a href="{{ url_for('token.my_tokens') }}" class="btn btn-secondary">
+        <i class="fas fa-history"></i> View Token History
+    </a>
+    <a href="{{ url_for('main.home') }}" class="btn btn-secondary">
+        <i class="fas fa-home"></i> Back to Home
+    </a>
+</div>
+
+<!-- Recent Tokens -->
+<h2 style="margin-bottom: 1rem;">
+    <i class="fas fa-ticket-alt"></i> Recent Tokens
+</h2>
+
+{% if tokens %}
+    <div class="card">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="text-align: left; padding: 1rem;">Token Number</th>
+                    <th style="text-align: left; padding: 1rem;">Department</th>
+                    <th style="text-align: left; padding: 1rem;">Status</th>
+                    <th style="text-align: left; padding: 1rem;">Queue Position</th>
+                    <th style="text-align: left; padding: 1rem;">Generated</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for token in tokens[:5] %}
+                <tr style="border-bottom: 1px solid var(--border-color); transition: var(--transition);" onmouseover="this.style.backgroundColor='var(--light-gray)'" onmouseout="this.style.backgroundColor='white'">
+                    <td style="padding: 1rem;">
+                        <strong class="token-number" style="font-size: 1.1rem;">{{ token.token_number }}</strong>
+                    </td>
+                    <td style="padding: 1rem;">{{ token.dept_name }}</td>
+                    <td style="padding: 1rem;">
+                        {% if token.status == 'waiting' %}
+                            <span class="badge badge-warning">Waiting</span>
+                        {% elif token.status == 'in_progress' %}
+                            <span class="badge badge-primary">In Progress</span>
+                        {% elif token.status == 'completed' %}
+                            <span class="badge badge-success">Completed</span>
+                        {% elif token.status == 'cancelled' %}
+                            <span class="badge badge-danger">Cancelled</span>
+                        {% elif token.status == 'skipped' %}
+                            <span class="badge badge-secondary">Skipped</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ token.status|capitalize }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        #{{ token.queue_position }}
+                    </td>
+                    <td style="padding: 1rem;">
+                        {{ token.created_at.strftime('%d %b %Y %H:%M') if token.created_at else 'N/A' }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="{{ url_for('token.my_tokens') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-right"></i> View All Tokens
+        </a>
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <div style="font-size: 3rem; color: var(--text-light); margin-bottom: 1rem;">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        <p class="text-muted" style="font-size: 1.1rem;">No tokens generated yet</p>
+        <a href="{{ url_for('token.departments') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-plus"></i> Generate Your First Token
+        </a>
+    </div>
+{% endif %}
+
+<!-- Information Cards -->
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card" style="border-left: 4px solid var(--primary-color);">
+            <h4><i class="fas fa-lightbulb"></i> How It Works</h4>
+            <p style="font-size: 0.9rem;">
+                Select a department, generate a token, and visit at your scheduled time. Skip the long queues!
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card" style="border-left: 4px solid var(--success-color);">
+            <h4><i class="fas fa-check-circle"></i> Stay Updated</h4>
+            <p style="font-size: 0.9rem;">
+                Check your tokens dashboard regularly for updates and queue status information.
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card" style="border-left: 4px solid var(--warning-color);">
+            <h4><i class="fas fa-phone"></i> Need Help?</h4>
+            <p style="font-size: 0.9rem;">
+                For any issues or questions, contact our hospital support team during business hours.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

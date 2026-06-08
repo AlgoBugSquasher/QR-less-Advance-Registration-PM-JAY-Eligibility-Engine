@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}My Tokens - Hospital Token System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>
+            <i class="fas fa-history"></i>
+            My Tokens
+        </h1>
+        <p>View and manage all your generated tokens</p>
+    </div>
+</div>
+
+<!-- Filter Buttons -->
+<div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+    <button onclick="filterTokens('all')" class="btn btn-primary" id="btnAll">
+        All (<span id="countAll">0</span>)
+    </button>
+    <button onclick="filterTokens('active')" class="btn btn-success" id="btnActive">
+        Queue (<span id="countActive">0</span>)
+    </button>
+    <button onclick="filterTokens('completed')" class="btn btn-secondary" id="btnCompleted">
+        Completed (<span id="countCompleted">0</span>)
+    </button>
+    <button onclick="filterTokens('cancelled')" class="btn btn-danger" id="btnCancelled">
+        Cancelled (<span id="countCancelled">0</span>)
+    </button>
+    <button onclick="filterTokens('skipped')" class="btn btn-secondary" id="btnSkipped">
+        Skipped (<span id="countSkipped">0</span>)
+    </button>
+    <a href="{{ url_for('token.departments') }}" class="btn btn-primary" style="margin-left: auto;">
+        <i class="fas fa-plus"></i> Generate New Token
+    </a>
+</div>
+
+{% if tokens %}
+    <div id="tokensContainer">
+        {% for token in tokens %}
+        <div class="card mb-3 token-card" data-status="{{ token.status }}">
+            <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1rem;">
+                <!-- Token Info -->
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="token-number" style="font-weight: bold; color: var(--primary-color);">
+                            {{ token.token_number }}
+                        </div>
+                        <div>
+                                {% if token.status == 'waiting' %}
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-hourglass-start"></i> Waiting
+                                </span>
+                            {% elif token.status == 'in_progress' %}
+                                <span class="badge badge-primary">
+                                    <i class="fas fa-procedures"></i> In Progress
+                                </span>
+                            {% elif token.status == 'completed' %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check"></i> Completed
+                                </span>
+                            {% elif token.status == 'cancelled' %}
+                                <span class="badge badge-danger">
+                                    <i class="fas fa-times"></i> Cancelled
+                                </span>
+                            {% elif token.status == 'skipped' %}
+                                <span class="badge badge-secondary">
+                                    <i class="fas fa-forward"></i> Skipped
+                                </span>
+                            {% else %}
+                                <span class="badge badge-secondary">{{ token.status|capitalize }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                        <div>
+                            <p class="text-muted" style="font-size: 0.85rem;">Department</p>
+                            <p style="font-weight: bold;">{{ token.department }}</p>
+                        </div>
+                        <div>
+                            <p class="text-muted" style="font-size: 0.85rem;">Queue Position</p>
+                            <p style="font-weight: bold; color: var(--primary-color);">#{{ token.queue_position }}</p>
+                        </div>
+                        <div>
+                            <p class="text-muted" style="font-size: 0.85rem;">Est. Wait</p>
+                            <p style="font-weight: bold;">
+                                {% if token.estimated_wait_time == 0 %}
+                                    No wait
+                                {% elif token.estimated_wait_time < 60 %}
+                                    {{ token.estimated_wait_time }} min
+                                {% else %}
+                                    {{ (token.estimated_wait_time // 60) }}h {{ (token.estimated_wait_time % 60) }}m
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-muted" style="font-size: 0.85rem;">Est. Arrival</p>
+                            <p style="font-weight: bold; color: var(--success-color);">
+                                <i class="fas fa-clock"></i> {{ token.estimated_arrival_time }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-muted" style="font-size: 0.85rem;">Generated</p>
+                            <p style="font-weight: bold;">{{ token.created_at }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% if token.status == 'waiting' or token.status == 'in_progress' %}
+                        <form action="{{ url_for('token.cancel_token', token_id=token.token_id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this token?');">
+                            <button type="submit" class="btn btn-danger" style="width: 100%;">
+                                <i class="fas fa-trash"></i> Cancel
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination Info -->
+    <div style="text-align: center; margin-top: 2rem; padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+        <p class="text-muted">Showing {{ tokens|length }} token{{ 's' if tokens|length != 1 else '' }}</p>
+    </div>
+{% else %}
+    <div class="card" style="text-align: center; padding: 3rem;">
+        <div style="font-size: 4rem; color: var(--text-light); margin-bottom: 1rem;">
+            <i class="fas fa-inbox"></i>
+        </div>
+        <h3>No Tokens Yet</h3>
+        <p class="text-muted">You haven't generated any tokens yet.</p>
+        <a href="{{ url_for('token.departments') }}" class="btn btn-primary mt-3">
+            <i class="fas fa-plus"></i> Generate Your First Token
+        </a>
+    </div>
+{% endif %}
+
+<script>
+// Update token counts
+function updateCounts() {
+    const allTokens = document.querySelectorAll('.token-card').length;
+    const waitingTokens = document.querySelectorAll('.token-card[data-status="waiting"]').length;
+    const inProgressTokens = document.querySelectorAll('.token-card[data-status="in_progress"]').length;
+    const completedTokens = document.querySelectorAll('.token-card[data-status="completed"]').length;
+    const cancelledTokens = document.querySelectorAll('.token-card[data-status="cancelled"]').length;
+    const skippedTokens = document.querySelectorAll('.token-card[data-status="skipped"]').length;
+
+    document.getElementById('countAll').textContent = allTokens;
+    document.getElementById('countActive').textContent = waitingTokens + inProgressTokens;
+    document.getElementById('countCompleted').textContent = completedTokens;
+    document.getElementById('countCancelled').textContent = cancelledTokens;
+    document.getElementById('countSkipped').textContent = skippedTokens;
+}
+
+// Filter tokens by status
+function filterTokens(status) {
+    const tokens = document.querySelectorAll('.token-card');
+    
+    tokens.forEach(token => {
+        if (status === 'all') {
+            token.style.display = 'block';
+        } else if (status === 'active') {
+            const tokenStatus = token.getAttribute('data-status');
+            token.style.display = (tokenStatus === 'waiting' || tokenStatus === 'in_progress') ? 'block' : 'none';
+        } else {
+            token.style.display = token.getAttribute('data-status') === status ? 'block' : 'none';
+        }
+    });
+
+    // Update active button
+    document.querySelectorAll('[id^="btn"]').forEach(btn => btn.classList.remove('btn-primary'));
+    document.getElementById('btn' + status.charAt(0).toUpperCase() + status.slice(1)).classList.add('btn-primary');
+}
+
+// Initialize
+updateCounts();
+</script>
+{% endblock %}

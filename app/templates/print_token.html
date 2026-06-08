@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Print Token - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Print page styling for clean receipt output */
+    .receipt-container {
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+
+    .receipt-card {
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+    }
+
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .receipt-title {
+        margin: 0.5rem 0 0;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .receipt-subtitle {
+        margin-top: 0.5rem;
+        color: #475569;
+        font-size: 0.95rem;
+    }
+
+    .receipt-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .receipt-section h3 {
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        color: #0f172a;
+        letter-spacing: 0.02em;
+    }
+
+    .receipt-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+
+    .receipt-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+    }
+
+    .receipt-item label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.5rem;
+    }
+
+    .receipt-item span {
+        display: block;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .receipt-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .status-waiting { background: #fff7e1; color: #92400e; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .status-in_progress { background: #dbeafe; color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.2); }
+    .status-completed { background: #dcfce7; color: #166534; border: 1px solid rgba(16, 185, 129, 0.2); }
+    .status-cancelled { background: #fee2e2; color: #991b1b; border: 1px solid rgba(220, 38, 38, 0.2); }
+    .status-skipped { background: #f8fafc; color: #475569; border: 1px solid rgba(148, 163, 184, 0.2); }
+
+    .print-actions {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .print-actions .btn {
+        flex: 1;
+        min-width: 170px;
+    }
+
+    @media print {
+        body {
+            background: white;
+        }
+
+        .navbar, .footer, .btn, .print-actions, .alert {
+            display: none !important;
+        }
+
+        .receipt-card {
+            box-shadow: none;
+            border: 1px solid #d1d5db;
+            margin: 0;
+        }
+
+        .receipt-container {
+            margin: 0;
+            padding: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="receipt-container">
+    <div class="receipt-card">
+        <div class="receipt-header">
+            <p class="receipt-subtitle">Hospital Token Receipt</p>
+            <h1 class="receipt-title">Hospital Token System</h1>
+            <p class="receipt-subtitle">Clean printed token for patient arrival and queue management.</p>
+        </div>
+
+        <div class="receipt-section">
+            <h3>Patient & Token Information</h3>
+            <div class="receipt-row">
+                <div class="receipt-item">
+                    <label>Patient Name</label>
+                    <span>{{ token.patient_name }}</span>
+                </div>
+                <div class="receipt-item">
+                    <label>Department</label>
+                    <span>{{ token.department }}</span>
+                </div>
+                <div class="receipt-item">
+                    <label>Token Number</label>
+                    <span>{{ token.token_number }}</span>
+                </div>
+                <div class="receipt-item">
+                    <label>Queue Position</label>
+                    <span>#{{ token.queue_position }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="receipt-section">
+            <h3>Status & Timing</h3>
+            <div class="receipt-row">
+                <div class="receipt-item">
+                    <label>Status</label>
+                    <span class="receipt-status status-{{ token.status }}">
+                        {{ token.status.replace('_', ' ') | title }}
+                    </span>
+                </div>
+                <div class="receipt-item">
+                    <label>Date & Time</label>
+                    <span>{{ token.created_at }}</span>
+                </div>
+                <div class="receipt-item">
+                    <label>Estimated Arrival</label>
+                    <span>{{ token.estimated_arrival_time }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="receipt-section" style="text-align:center; margin-top: 1.5rem;">
+            <p style="margin-bottom: 0.35rem; color: #475569; font-weight: 700; letter-spacing: 0.08em; font-size: 0.85rem;">Please keep this token safe and present it at the department counter.</p>
+            <p style="font-size: 0.95rem; color: #64748b; line-height: 1.6;">This printout is a record of your scheduled appointment. Arrive on time and follow hospital guidance.</p>
+        </div>
+
+        <div class="print-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">Print Receipt</button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary">Return to Dashboard</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Automatically trigger the browser print dialog when the print receipt page loads.
+    window.addEventListener('DOMContentLoaded', function() {
+        window.print();
+    });
+</script>
+{% endblock %}

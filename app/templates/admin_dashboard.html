@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-dashboard-grid {
+        display: grid;
+        gap: 1.75rem;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    }
+
+    .admin-card {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 1.75rem;
+        box-shadow: 0 22px 45px rgba(15, 23, 42, 0.08);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .admin-card h3 {
+        font-size: 1.45rem;
+        margin-bottom: 0.75rem;
+        color: #0f172a;
+    }
+
+    .admin-card small {
+        color: #475569;
+        font-size: 0.93rem;
+    }
+
+    /* New responsive flex-based stat layout */
+    .stats-grid{
+        display:flex;
+        gap:10px;
+        justify-content:space-between;
+        align-items:stretch;
+        width:100%;
+        box-sizing: border-box;
+    }
+
+    .stat-card{
+        flex:1;
+        min-width:0;
+        padding:14px 10px;
+        border-radius:16px;
+        background: #f8fbff;
+        border: 1px solid rgba(15, 23, 42, 0.07);
+        box-sizing: border-box;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        align-items:flex-start;
+    }
+
+    .stat-card h4,
+    .stat-card .stat-title{
+        font-size:14px;
+        font-weight:700;
+        margin-bottom:8px;
+        letter-spacing:0.5px;
+        color: #475569;
+    }
+
+    .stat-card h2,
+    .stat-card .stat-number{
+        font-size:32px;
+        font-weight:800;
+        line-height:1;
+        color: #102a43;
+    }
+
+    .department-card{
+        overflow:hidden;
+    }
+
+    .admin-actions {
+        display: flex;
+        gap: 0.9rem;
+        flex-wrap: wrap;
+        margin-top: 1.4rem;
+    }
+
+    .admin-action-panel {
+        flex: 1;
+        min-width: 240px;
+        background: #f8fbff;
+        border-radius: 20px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        padding: 1.1rem;
+    }
+
+    .admin-action-panel h4 {
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+        color: #102a43;
+    }
+
+    .admin-action-panel p {
+        color: #475569;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .admin-current-token {
+        background: #e7f1ff;
+        border: 1px solid rgba(13, 110, 253, 0.18);
+    }
+
+    .admin-current-token .token-number {
+        background: #0d6efd;
+        color: #ffffff;
+        border-radius: 18px;
+        margin: 0.75rem 0;
+        padding: 1rem 1.2rem;
+        font-size: 1.65rem;
+        font-weight: 900;
+        display: inline-block;
+    }
+
+    .admin-ready-panel {
+        background: #eef8f6;
+        border: 1px solid rgba(40, 167, 69, 0.16);
+    }
+
+    .admin-queue-panel {
+        background: #f8f9fb;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .admin-queue-panel h4 {
+        margin-bottom: 0.85rem;
+        color: #102a43;
+    }
+
+    .queue-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .queue-item {
+        padding: 0.9rem 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #0f172a;
+        font-weight: 600;
+    }
+
+    .queue-item:last-child {
+        border-bottom: none;
+    }
+
+    .queue-item span {
+        color: #0f172a;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        border-radius: 999px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge.waiting {
+        background: #fff5cc;
+        color: #a16d00;
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    .status-badge.in_progress {
+        background: #dbeafe;
+        color: #1d4ed8;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .status-badge.completed {
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-badge.cancelled {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid rgba(220, 38, 38, 0.2);
+    }
+
+    .status-badge.skipped {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .text-muted {
+        color: #475569 !important;
+    }
+
+    .action-button-row {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .action-button-row form {
+        flex: 1;
+        min-width: 132px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    <h1>
+                        <i class="fas fa-user-shield"></i>
+                        Admin Dashboard
+                    </h1>
+                    <p>Welcome back, {{ admin.admin_name }}. Manage active hospital queues and serve patients.</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('main.display') }}" class="btn btn-primary" style="min-width: 220px;">
+                        <i class="fas fa-tv"></i>
+                        Open Display Screen
+                    </a>
+                </div>
+            </div>
+    </div>
+</div>
+
+<div class="admin-dashboard-grid">
+    {% for dept in departments %}
+        <div>
+            <div class="admin-card department-card">
+                <h3>{{ dept.name }} <small>({{ dept.dept_code }})</small></h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-title">Waiting</div>
+                        <div class="stat-number">{{ dept.stats.waiting_count }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Serving</div>
+                        <div class="stat-number">{{ dept.stats.in_progress_count }}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">Completed</div>
+                        <div class="stat-number">{{ dept.stats.completed_count }}</div>
+                    </div>
+                </div>
+
+                <div class="admin-actions">
+                    {% if dept.current_token %}
+                        <div class="admin-action-panel admin-current-token">
+                            <h4>Currently Serving</h4>
+                            <div class="token-number">{{ dept.current_token.token_number }}</div>
+                            <p>Queue #{{ dept.current_token.queue_position }}</p>
+                            <span class="status-badge in_progress">In Progress</span>
+                            <div class="action-button-row" style="margin-top: 1rem;">
+                                <form action="{{ url_for('admin.complete_token', token_id=dept.current_token._id) }}" method="POST">
+                                    <button type="submit" class="btn btn-success btn-block">Complete</button>
+                                </form>
+                                <form action="{{ url_for('admin.skip_token', token_id=dept.current_token._id) }}" method="POST">
+                                    <button type="submit" class="btn btn-warning btn-block">Skip</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="admin-action-panel admin-ready-panel">
+                            <h4>Ready for Next</h4>
+                            <p>No active token is currently in progress.</p>
+                            <form action="{{ url_for('admin.call_next_token', dept_code=dept.dept_code) }}" method="POST">
+                                <button type="submit" class="btn btn-primary btn-block">Call Next</button>
+                            </form>
+                        </div>
+                    {% endif %}
+
+                    <div class="admin-action-panel admin-queue-panel">
+                        <h4>Queue Depth</h4>
+                        <p><strong>{{ dept.stats.waiting_count }}</strong> waiting</p>
+                        <p><strong>{{ dept.stats.skipped_count }}</strong> skipped</p>
+                        <p><strong>{{ dept.stats.cancelled_count }}</strong> cancelled</p>
+                    </div>
+                </div>
+
+                <div class="admin-queue-panel" style="margin-top: 1.5rem; padding: 1.25rem;">
+                    <h4 style="margin-bottom: 0.85rem;">Waiting Tokens</h4>
+                    {% if dept.waiting_tokens %}
+                        <ul class="queue-list">
+                        {% for token in dept.waiting_tokens %}
+                            <li class="queue-item">
+                                <span><strong>{{ token.token_number }}</strong> (#{{ token.queue_position }})</span>
+                                <span class="status-badge waiting">Waiting</span>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No tokens waiting in this department.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+
+{% block title %}Hindi Voice Assistant - Hospital Token System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-microphone"></i> Hindi Voice Assistant</h1>
+    <p>Describe your symptoms in Hindi/Hinglish and get the right department</p>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h2>Voice Consultation</h2>
+        </div>
+        <div class="card-body">
+            <!-- Voice Warning -->
+            <div id="voiceWarning" style="display:none; padding:1rem; margin-bottom:1rem; background-color:#fee; border:1px solid #fcc; border-radius:6px; color:#c00;">
+                ⚠️ Warning messages will appear here
+            </div>
+
+            <!-- Voice Status -->
+            <div style="padding:0.75rem; margin-bottom:1rem; background-color:#f0f9ff; border:1px solid #e0f2fe; border-radius:6px; color:#0369a1;">
+                <strong>Voice Status:</strong> <span id="voiceStatus">Initializing...</span>
+            </div>
+
+            <!-- Assistant Status -->
+            <div style="padding:0.75rem; margin-bottom:1rem; background-color:#f8fafc; border-left:3px solid #64748b;">
+                <strong>Status:</strong> <span id="assistant-status">Ready</span>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="margin-bottom:1.5rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+                <button id="startButton" class="btn btn-primary">
+                    <i class="fas fa-play"></i> Start Voice Assistant
+                </button>
+                <button id="retryButton" class="btn btn-secondary" style="display:none;">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+
+            <!-- Recognized Transcript -->
+            <div style="margin-bottom:1rem;">
+                <strong>Your Speech:</strong>
+                <div id="transcriptBox" style="padding:1rem; background-color:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; min-height:2rem; color:#475569;">
+                    —
+                </div>
+            </div>
+
+            <!-- Conversation Area -->
+            <div style="margin-bottom:1rem;">
+                <strong>Conversation:</strong>
+                <div id="conversationArea" style="padding:1rem; background-color:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; min-height:6rem; max-height:15rem; overflow-y:auto; color:#334155;">
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div style="padding:1rem; background-color:#fef3c7; border:1px solid #fcd34d; border-radius:6px; color:#92400e;">
+                <strong>Instructions:</strong>
+                <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+                    <li>Click "Start Voice Assistant" button</li>
+                    <li>Wait for greeting: "नमस्ते। कृपया अपनी समस्या बताइए।"</li>
+                    <li>Describe your symptoms in Hindi/Hinglish (e.g., "bukhar", "dil dard", "kamar dard")</li>
+                    <li>Confirm the suggested department with "हाँ" (haan) or "नहीं" (nahi)</li>
+                    <li>Your token will be generated automatically</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===== Web Speech API Voice Assistant - Fixed Synthesis Implementation =====
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const synth = window.speechSynthesis;
+
+// State variables
+let recognition = null;
+let assistantState = 'idle'; // idle, awaiting_symptom, awaiting_confirmation, generating, done
+let pendingDepartment = null;
+let isListening = false;
+let selectedVoice = null;
+let lastRecognitionSucceeded = false;
+let recognitionRestartCount = 0;
+const maxRecognitionRestartAttempts = 5;
+let lastErrorMessage = '';
+let ignoreNextOnendRestart = false;
+
+// DOM Elements
+const voiceWarningEl = document.getElementById('voiceWarning');
+const voiceStatusEl = document.getElementById('voiceStatus');
+const assistantStatusEl = document.getElementById('assistant-status');
+const transcriptBox = document.getElementById('transcriptBox');
+const conversationArea = document.getElementById('conversationArea');
+const startButton = document.getElementById('startButton');
+const retryButton = document.getElementById('retryButton');
+
+const departmentMappings = [
+  {
+    code: 'GEN',
+    name: 'General OPD',
+    keywords: ['bukhar', 'बुखार', 'fever', 'sardi', 'सर्दी', 'khansi', 'खांसी', 'cough', 'pet dard', 'पेट दर्द', 'pet me dard', 'gas', 'गैस', 'acidity', 'weakness', 'कमजोरी', 'kamzori', 'ulti', 'sir dard', 'सर दर्द','sar me dard','सर में दर्द','headache','vomiting']
+  },
+  {
+    code: 'CARD',
+    name: 'Cardiology',
+    keywords: ['dil', 'दिल', 'dil dard', 'दिल दर्द', 'chest pain', 'heart', 'bp', 'बीपी', 'blood pressure', 'dhadkan', 'धड़कन', 'heart pain', 'palpitation']
+  },
+  {
+    code: 'ORTH',
+    name: 'Orthopaedics',
+    keywords: ['ghutna', 'घुटना', 'ghutna dard', 'घुटना दर्द', 'kamar', 'कमर', 'kamar dard', 'कमर दर्द', 'back pain', 'body pain', 'joint pain', 'jodo', 'जोड़', 'jodo dard', 'जोड़ दर्द', 'jodo me dard', 'jodon me dard', 'jodon ka dard', 'jodo ka dard', 'jodon mein dard', 'jodo mein dard', 'haadiyo me dard', 'हाडियों में दर्द', 'haddiyo me dard', 'हड्डियों में दर्द', 'haddi', 'हड्डी', 'haddi dard', 'हड्डी दर्द', 'fracture', 'फ्रैक्चर','ghutne me dard','mere ghutne me pain hai']
+  },
+  {
+    code: 'PED',
+    name: 'Pediatrics',
+    keywords: ['baccha', 'बच्चा', 'baby', 'बेबी', 'vaccine', 'vaccination', 'वैक्सीनेशन', 'newborn', 'नवजात', 'child', 'बच्चे']
+  },
+  {
+    code: 'NEUR',
+    name: 'Neurology',
+    keywords: ['sar dard', 'सिर दर्द', 'naso me dard', 'naso me dard', 'nas dard', 'naso dard', 'nose dard', 'naso se dard', 'nas ka dard', 'jhunjhuni', 'झुनझुनी', 'jhunjhuni dard', 'झुनझुनी दर्द', 'migraine', 'माइग्रेन', 'chakkar', 'चक्कर', 'dizziness','naso me dard', 'naso mein dard', 'nas dard', 'nerve pain', 'nerves pain', 'nerves', 'naso ka dard', 'नसों में दर्द', 'नस दर्द', 'numbness', 'jhunjhuni', 'झुनझुनी']
+  }
+];
+
+function initializeVoices() {
+  if (!synth) {
+    console.log('[VOICE] speechSynthesis API not available');
+    voiceWarningEl.innerText = 'Speech synthesis not available on this device.';
+    voiceWarningEl.style.display = 'block';
+    voiceStatusEl.innerText = 'Text mode (no speech synthesis).';
+    return;
+  }
+
+  const voices = synth.getVoices() || [];
+  console.log('[VOICE] ====== ALL AVAILABLE VOICES ======');
+  console.log('[VOICE] Total voices available: ' + voices.length);
+  voices.forEach(function(voice, index) {
+    console.log('[VOICE] ' + index + ': ' + voice.name + ' | Lang: ' + voice.lang + ' | Default: ' + voice.default);
+  });
+  console.log('[VOICE] ====== END VOICES LIST ======');
+
+  const hindiVoices = voices.filter(function(v) { return (v.lang || '').toLowerCase().startsWith('hi'); });
+  const femaleVoice = hindiVoices.find(function(v) {
+    const name = (v.name || '').toLowerCase();
+    return name.includes('female') || name.includes('female voice') || name.includes('woman') || name.includes('female_hindi') || name.includes('female hindi');
+  }) || hindiVoices[0];
+
+  if (femaleVoice) {
+    selectedVoice = femaleVoice;
+    console.log('[VOICE] Selected female voice: ' + selectedVoice.name + ' (' + selectedVoice.lang + ')');
+    voiceStatusEl.innerText = 'Selected voice: ' + selectedVoice.name;
+  } else {
+    const englishFemale = voices.find(function(v) {
+      const name = (v.name || '').toLowerCase();
+      return name.includes('female') || name.includes('woman');
+    });
+    selectedVoice = englishFemale || voices[0] || null;
+    if (selectedVoice) {
+      console.log('[VOICE] Selected fallback voice: ' + selectedVoice.name + ' (' + selectedVoice.lang + ')');
+      voiceStatusEl.innerText = 'Selected voice: ' + selectedVoice.name;
+    } else {
+      console.log('[VOICE] No voice selected. Using browser default synthesis.');
+      voiceStatusEl.innerText = 'Using default browser voice.';
+    }
+  }
+}
+
+if (synth) {
+  initializeVoices();
+  synth.onvoiceschanged = function() {
+    console.log('[VOICE] Voices changed event fired');
+    initializeVoices();
+  };
+} else {
+  console.log('[VOICE] speechSynthesis not available');
+}
+
+function speak(text, options) {
+  options = options || {};
+  const restartAfter = options.restartAfter !== false;
+  const isRetry = options.isRetry || false;
+
+  return new Promise(function(resolve) {
+    if (!synth) {
+      console.log('[VOICE] speechSynthesis unavailable; text was: ' + text);
+      appendMessage(text, 'assistant');
+      assistantStatusEl.innerText = 'Text assistant response shown.';
+      resolve();
+      return;
+    }
+
+    stopListening();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang || 'en-US';
+      console.log('[VOICE] Using selected voice: ' + selectedVoice.name + ' (' + utterance.lang + ')');
+    } else {
+      utterance.lang = 'en-US';
+    }
+    utterance.rate = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = function() {
+      console.log('[VOICE] Speech started');
+      assistantStatusEl.innerText = 'Speaking...';
+      appendMessage(text, 'assistant');
+    };
+
+    utterance.onend = function() {
+      console.log('[VOICE] Speech ended');
+      assistantStatusEl.innerText = 'Speech finished.';
+      if (restartAfter) {
+        setTimeout(requestRecognitionIfNeeded, 500);
+      }
+      resolve();
+    };
+
+    utterance.onerror = function(event) {
+      const errorMsg = event.error || 'unknown';
+      console.log('[VOICE] Speech error: ' + errorMsg);
+      assistantStatusEl.innerText = 'Speech error: ' + errorMsg;
+      if (errorMsg === 'synthesis-failed' && !isRetry) {
+        console.log('[VOICE] Retrying speech without voice specification...');
+        setTimeout(function() {
+          speak(text, { restartAfter: restartAfter, isRetry: true })
+            .then(resolve)
+            .catch(function() { resolve(); });
+        }, 300);
+      } else {
+        resolve();
+      }
+    };
+
+    try {
+      console.log('[VOICE] Calling speechSynthesis.cancel()');
+      synth.cancel();
+      console.log('[VOICE] Speaking: ' + text.substring(0, 50) + '...');
+      synth.speak(utterance);
+    } catch (e) {
+      console.log('[VOICE] Exception in speak(): ' + e.message);
+      resolve();
+    }
+  });
+}
+
+function normalizeText(text) {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[।!?.,]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function findDepartmentForSymptom(text) {
+  if (!text) return null;
+  const normalized = normalizeText(text);
+  let bestMatch = { code: 'GEN', name: 'General OPD', score: 0 };
+  departmentMappings.forEach(function(mapping) {
+    mapping.matchScore = 0;
+    mapping.keywords.forEach(function(keyword) {
+      if (!keyword) return;
+      if (normalized.indexOf(normalizeText(keyword)) !== -1) {
+        mapping.matchScore += 1;
+      }
+    });
+    if (mapping.matchScore > bestMatch.score) {
+      bestMatch = { code: mapping.code, name: mapping.name, score: mapping.matchScore };
+    }
+  });
+  return bestMatch;
+}
+
+function isPositiveResponse(text) {
+  const normalized = normalizeText(text);
+  return (
+    normalized.includes('हाँ') ||
+    normalized.includes('हां') ||
+    normalized.includes('haan') ||
+    normalized.includes('haan ji') ||
+    normalized.includes('yes') ||
+    normalized.includes('जी') ||
+    normalized.includes('ठीक') ||
+    normalized.includes('theek')
+  );
+}
+
+function isNegativeResponse(text) {
+  const normalized = normalizeText(text);
+  return (
+    normalized.includes('नहीं') ||
+    normalized.includes('नही') ||
+    normalized.includes('nahi') ||
+    normalized.includes('nahin') ||
+    normalized.includes('no') ||
+    normalized.includes('ना')
+  );
+}
+
+function createRecognition() {
+  const recog = new SpeechRecognition();
+  recog.lang = 'hi-IN';
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
+  recog.continuous = false;
+
+  recog.onstart = function() {
+    isListening = true;
+    console.log('[VOICE] Recognition started');
+    assistantStatusEl.innerText = 'Listening...';
+  };
+
+  recog.onresult = function(event) {
+    lastRecognitionSucceeded = true;
+    recognitionRestartCount = 0;
+    ignoreNextOnendRestart = true;
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    transcript = transcript.trim();
+    if (!transcript) {
+      console.log('[VOICE] Empty transcript received');
+      scheduleRecognitionRestart('empty-transcript');
+      return;
+    }
+    console.log('[VOICE] Recognition result: ' + transcript);
+    transcriptBox.innerText = transcript;
+    appendMessage(transcript, 'user');
+    handleRecognitionResult(transcript);
+  };
+
+  recog.onerror = function(event) {
+    handleRecognitionError(event);
+  };
+
+  recog.onend = function() {
+    isListening = false;
+    console.log('[VOICE] Recognition ended');
+    if (ignoreNextOnendRestart) {
+      console.log('[VOICE] Skipping onend auto-restart after valid recognition result');
+      ignoreNextOnendRestart = false;
+      return;
+    }
+    if (assistantState === 'awaiting_symptom' || assistantState === 'awaiting_confirmation') {
+      if (!synth || !synth.speaking) {
+        scheduleRecognitionRestart('onend');
+      } else {
+        console.log('[VOICE] Recognition ended while speech is playing; waiting for speech to complete');
+      }
+    }
+  };
+
+  return recog;
+}
+
+function setupRecognition() {
+  if (!SpeechRecognition) {
+    console.log('[VOICE] SpeechRecognition not available');
+    assistantStatusEl.innerText = 'Speech recognition not supported.';
+    startButton.disabled = true;
+    voiceWarningEl.innerText = 'Speech recognition not available in this browser.';
+    voiceWarningEl.style.display = 'block';
+    return;
+  }
+  recognition = createRecognition();
+}
+
+function startListening() {
+  if (!SpeechRecognition) {
+    console.log('[VOICE] SpeechRecognition not available');
+    return;
+  }
+  if (isListening) {
+    console.log('[VOICE] Already listening, skipping start');
+    return;
+  }
+  if (synth && synth.speaking) {
+    console.log('[VOICE] Cannot start listening while speech is speaking');
+    return;
+  }
+  if (!recognition) {
+    setupRecognition();
+    if (!recognition) {
+      console.log('[VOICE] Failed to setup recognition');
+      return;
+    }
+  }
+  try {
+    console.log('[VOICE] Starting recognition...');
+    recognition.start();
+  } catch (e) {
+    console.log('[VOICE] recognition.start() error: ' + e.message);
+    scheduleRecognitionRestart('start-exception');
+  }
+}
+
+function stopListening() {
+  if (recognition) {
+    try { recognition.abort(); } catch (e) {}
+    try { recognition.stop(); } catch (e) {}
+  }
+  isListening = false;
+}
+
+function appendMessage(text, who) {
+  who = who || 'assistant';
+  const div = document.createElement('div');
+  div.style.marginBottom = '0.75rem';
+  div.style.padding = '0.5rem 0.75rem';
+  div.style.borderRadius = '6px';
+  if (who === 'assistant') {
+    div.style.backgroundColor = '#e0f2fe';
+    div.style.borderLeft = '3px solid #0284c7';
+    div.innerText = 'Assistant: ' + text;
+  } else {
+    div.style.backgroundColor = '#f1f5f9';
+    div.style.borderLeft = '3px solid #64748b';
+    div.innerText = 'You: ' + text;
+  }
+  conversationArea.appendChild(div);
+  conversationArea.scrollTop = conversationArea.scrollHeight;
+}
+
+function handleRecognitionError(event) {
+  const errorMsg = (event && event.error) ? event.error : 'unknown';
+  console.log('[VOICE] Recognition error: ' + errorMsg, event);
+  if (errorMsg !== lastErrorMessage) {
+    lastErrorMessage = errorMsg;
+  }
+  if (errorMsg === 'network') {
+    if (lastRecognitionSucceeded) {
+      console.log('[VOICE] Ignoring network error after successful recognition');
+      return;
+    }
+    if (assistantState === 'awaiting_symptom' || assistantState === 'awaiting_confirmation') {
+      assistantStatusEl.innerText = 'Retrying recognition...';
+      scheduleRecognitionRestart('network');
+      return;
+    }
+  }
+  if (errorMsg === 'no-speech') {
+    assistantStatusEl.innerText = 'No speech detected. Retrying...';
+    appendMessage('Kuch suna nahi gaya. Kripya phir se boliye.', 'assistant');
+    scheduleRecognitionRestart('no-speech');
+    return;
+  }
+  if (errorMsg === 'audio-capture') {
+    assistantStatusEl.innerText = 'Microphone unavailable.';
+    voiceWarningEl.innerText = 'Microphone nahi mila. Browser microphone permission check karein.';
+    voiceWarningEl.style.display = 'block';
+    return;
+  }
+  if (errorMsg === 'not-allowed' || errorMsg === 'service-not-allowed' || errorMsg === 'permission-denied') {
+    assistantStatusEl.innerText = 'Microphone permission denied.';
+    voiceWarningEl.innerText = 'Microphone access mana kiya gaya hai. Browser permissions allow karein.';
+    voiceWarningEl.style.display = 'block';
+    return;
+  }
+  if (errorMsg === 'aborted') {
+    console.log('[VOICE] Recognition aborted, will retry if still awaiting input');
+    scheduleRecognitionRestart('aborted');
+    return;
+  }
+  if (assistantState === 'awaiting_symptom' || assistantState === 'awaiting_confirmation') {
+    assistantStatusEl.innerText = 'Recognition error occurred. Retrying...';
+    scheduleRecognitionRestart(errorMsg);
+    return;
+  }
+  assistantStatusEl.innerText = 'Recognition error: ' + errorMsg;
+}
+
+function scheduleRecognitionRestart(reason) {
+  if (assistantState !== 'awaiting_symptom' && assistantState !== 'awaiting_confirmation') {
+    console.log('[VOICE] Not retrying recognition because state=' + assistantState);
+    return;
+  }
+  if (recognitionRestartCount >= maxRecognitionRestartAttempts) {
+    assistantStatusEl.innerText = 'Recognition unavailable. Please try again.';
+    retryButton.style.display = 'inline-block';
+    console.log('[VOICE] Max recognition restart attempts reached');
+    return;
+  }
+  recognitionRestartCount += 1;
+  const delay = 600 + recognitionRestartCount * 300;
+  console.log('[VOICE] Auto-retry recognition (reason: ' + reason + ', attempt: ' + recognitionRestartCount + '/' + maxRecognitionRestartAttempts + ', delay: ' + delay + 'ms)');
+  stopListening();
+  setTimeout(function tryStart() {
+    if (synth && synth.speaking) {
+      console.log('[VOICE] Waiting for speech to finish before retrying recognition');
+      setTimeout(tryStart, 400);
+      return;
+    }
+    if (assistantState === 'awaiting_symptom' || assistantState === 'awaiting_confirmation') {
+      startListening();
+    }
+  }, delay);
+}
+
+function requestRecognitionIfNeeded() {
+  if (!SpeechRecognition) return;
+  if (isListening) return;
+  if (synth && synth.speaking) {
+    console.log('[VOICE] Speech is active; delaying recognition start');
+    return;
+  }
+  if (assistantState === 'awaiting_symptom' || assistantState === 'awaiting_confirmation') {
+    startListening();
+  }
+}
+
+function handleRecognitionResult(text) {
+  lastRecognitionSucceeded = true;
+  recognitionRestartCount = 0;
+  lastErrorMessage = '';
+  console.log('RAW =', text);
+  console.log('NORMALIZED =', normalizeText(text));
+  console.log('POSITIVE =', isPositiveResponse(text));
+  console.log('NEGATIVE =', isNegativeResponse(text));
+  console.log('STATE =', assistantState);
+  if (assistantState === 'awaiting_symptom') {
+    const dept = findDepartmentForSymptom(text);
+    pendingDepartment = dept;
+    assistantState = 'awaiting_confirmation';
+    const response = 'Aapko ' + dept.name + ' mein bheja ja raha hai. Kya theek hai?';
+    speak(response, { restartAfter: true });
+    return;
+  }
+  if (assistantState === 'awaiting_confirmation') {
+    if (isPositiveResponse(text)) {
+      assistantState = 'generating';
+      speak('Aapka token generate kiya ja raha hai.', { restartAfter: false })
+        .then(function() {
+          generateTokenViaAPI();
+        });
+      return;
+    }
+    if (isNegativeResponse(text)) {
+      assistantState = 'idle';
+      speak('Prakriya radd kar di gayi.', { restartAfter: false })
+        .then(resetFlow);
+      return;
+    }
+    assistantStatusEl.innerText = 'Kripya haan ya nahi bolein.';
+    speak('Kripya haan ya nahi mein jawab dijiye.', { restartAfter: true });
+  }
+}
+
+function generateTokenViaAPI() {
+  if (!pendingDepartment) {
+    speak('Kuchh galat ho gaya.', { restartAfter: false });
+    assistantState = 'idle';
+    return;
+  }
+  console.log('pendingDepartment =', pendingDepartment);
+  console.log('dept_code being sent =', pendingDepartment.code);
+  const requestBody = JSON.stringify({ dept_code: pendingDepartment.code });
+  console.log('voice-generate request body =', requestBody);
+  fetch('{{ url_for("token.voice_generate_token") }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: requestBody
+  })
+  .then(function(res) {
+    return res.json().then(function(data) { return { status: res.status, ok: res.ok, data: data }; });
+  })
+  .then(function(result) {
+    const data = result.data;
+    if (result.ok && data.success) {
+      const msg = 'Aapka token ' + data.token_number + ' generate ho gaya hai. Kripya apni baari ka intezar karein.';
+      appendMessage('Token: ' + data.token_number + ' | Department: ' + data.department, 'assistant');
+      speak(msg, { restartAfter: false });
+      assistantState = 'done';
+    } else {
+      const err = data.message || 'Token generate nahi ho paya.';
+      speak(err, { restartAfter: false });
+      assistantState = 'idle';
+    }
+  })
+  .catch(function(e) {
+    console.log('[VOICE] API error: ' + e.message);
+    speak('Server mein kuchh samasya hui.', { restartAfter: false });
+    assistantState = 'idle';
+  });
+}
+
+function resetFlow() {
+  assistantState = 'idle';
+  pendingDepartment = null;
+  transcriptBox.innerText = '—';
+  conversationArea.innerHTML = '';
+  stopListening();
+  recognitionRestartCount = 0;
+  lastRecognitionSucceeded = false;
+  lastErrorMessage = '';
+  ignoreNextOnendRestart = false;
+  retryButton.style.display = 'none';
+  voiceWarningEl.style.display = 'none';
+}
+
+function startAssistantFlow() {
+  console.log('[VOICE] Starting assistant flow');
+  resetFlow();
+  assistantState = 'awaiting_symptom';
+  assistantStatusEl.innerText = 'Preparing voice assistant...';
+  speak('Namaste. Kripya apni samasya bataiye.', { restartAfter: true });
+}
+
+if (startButton) {
+  startButton.addEventListener('click', function() {
+    console.log('[VOICE] Start button clicked');
+    startButton.disabled = true;
+    startAssistantFlow();
+    setTimeout(function() { startButton.disabled = false; }, 1000);
+  });
+}
+
+if (retryButton) {
+  retryButton.addEventListener('click', function() {
+    console.log('[VOICE] Retry button clicked');
+    retryButton.style.display = 'none';
+    startAssistantFlow();
+  });
+}
+
+console.log('[VOICE] Voice Assistant Script Loaded');
+setupRecognition();
+console.log('[VOICE] Recognition setup complete');
+</script>
+{% endblock %}

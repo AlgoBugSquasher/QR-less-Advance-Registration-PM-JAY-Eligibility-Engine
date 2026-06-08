@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Token Confirmation - Hospital Token System{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+    <div class="card" style="border: 3px solid var(--success-color); background: linear-gradient(to right, #f0f9ff, #ffffff);">
+        <!-- Success Icon -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 4rem; color: var(--success-color); animation: scaleIn 0.5s ease;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 style="color: var(--success-color); margin-top: 1rem;">Token Generated Successfully!</h2>
+        </div>
+
+        <!-- Token Details -->
+        <div style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); 
+                    color: white; padding: 2rem; border-radius: 10px; text-align: center; margin-bottom: 2rem;">
+            <p style="margin-bottom: 0.5rem; opacity: 0.9;">Your Token Number</p>
+            <p class="token-number" style="font-weight: bold; letter-spacing: 2px; margin: 0;">
+                {{ token.token_number }}
+            </p>
+        </div>
+
+        <!-- Token Information Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                <p class="text-muted" style="margin-bottom: 0.5rem;">Department</p>
+                <p style="font-size: 1.3rem; font-weight: bold;">{{ token.department }}</p>
+            </div>
+            
+            <div style="padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                <p class="text-muted" style="margin-bottom: 0.5rem;">Queue Position</p>
+                <p style="font-size: 1.3rem; font-weight: bold; color: var(--primary-color);">
+                    #{{ token.queue_position }}
+                </p>
+            </div>
+            
+            <div style="padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                <p class="text-muted" style="margin-bottom: 0.5rem;">Estimated Wait Time</p>
+                <p style="font-size: 1.2rem; font-weight: bold;">
+                    {% if token.estimated_wait_time == 0 %}
+                        No wait
+                    {% elif token.estimated_wait_time < 60 %}
+                        {{ token.estimated_wait_time }} min
+                    {% else %}
+                        {{ (token.estimated_wait_time // 60) }}h {{ (token.estimated_wait_time % 60) }}m
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div style="padding: 1rem; background: var(--light-gray); border-radius: 8px;">
+                <p class="text-muted" style="margin-bottom: 0.5rem;">Estimated Arrival</p>
+                <p style="font-size: 1.2rem; font-weight: bold; color: var(--success-color);">
+                    <i class="fas fa-clock"></i> {{ token.estimated_arrival_time }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Generated Time -->
+        <div style="text-align: center; padding: 1rem; background: var(--light-gray); border-radius: 8px; margin-bottom: 1.5rem;">
+            <p class="text-muted" style="margin-bottom: 0.3rem;">Generated At</p>
+            <p style="font-size: 1.1rem; font-weight: bold;">{{ token.created_at }}</p>
+        </div>
+
+        <!-- Status Badge -->
+        <div style="text-align: center; margin-bottom: 2rem;">
+            {% if token.status == 'waiting' %}
+                <span class="badge badge-warning">
+                    <i class="fas fa-hourglass-start"></i> Waiting
+                </span>
+            {% elif token.status == 'in_progress' %}
+                <span class="badge badge-primary">
+                    <i class="fas fa-procedures"></i> In Progress
+                </span>
+            {% elif token.status == 'completed' %}
+                <span class="badge badge-success">
+                    <i class="fas fa-check"></i> Completed
+                </span>
+            {% elif token.status == 'cancelled' %}
+                <span class="badge badge-danger">
+                    <i class="fas fa-times"></i> Cancelled
+                </span>
+            {% elif token.status == 'skipped' %}
+                <span class="badge badge-secondary">
+                    <i class="fas fa-forward"></i> Skipped
+                </span>
+            {% else %}
+                <span class="badge badge-secondary">{{ token.status|capitalize }}</span>
+            {% endif %}
+        </div>
+
+        <!-- Instructions -->
+        <div style="background: #e8f5e9; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--success-color); margin-bottom: 1.5rem;">
+            <h4 style="color: var(--success-color); margin-bottom: 0.5rem;">
+                <i class="fas fa-info-circle"></i> Next Steps
+            </h4>
+            <ol style="margin-left: 1rem; margin-bottom: 0;">
+                <li>Note down your token number: <strong>{{ token.token_number }}</strong></li>
+                <li>Arrive at the hospital by <strong>{{ token.estimated_arrival_time }}</strong></li>
+                <li>Present this token at the <strong>{{ token.department }}</strong> counter</li>
+                <li>Complete your consultation and visit</li>
+            </ol>
+        </div>
+
+        <!-- Important Notes -->
+        <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--warning-color); margin-bottom: 1.5rem;">
+            <p style="margin-bottom: 0.5rem;">
+                <strong><i class="fas fa-exclamation-triangle"></i> Important:</strong>
+            </p>
+            <ul style="margin-left: 1rem; margin-bottom: 0; font-size: 0.95rem;">
+                <li>Arrive 5-10 minutes before your estimated time</li>
+                <li>Keep your token number safe for reference</li>
+                <li>Your token is valid only for today</li>
+                <li>Carry valid ID and medical documents</li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{{ url_for('main.home') }}" class="btn btn-primary" style="flex: 1; text-align: center;">
+                <i class="fas fa-home"></i> Go to Home
+            </a>
+            <a href="{{ url_for('token.departments') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                <i class="fas fa-ticket-alt"></i> Get Another Token
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary" style="flex: 1; text-align: center;">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="{{ url_for('token.print_token', token_id=token.token_id) }}" class="btn btn-success" style="flex: 1; text-align: center; min-width: 160px;">
+                <i class="fas fa-print"></i> Print Token
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+</style>
+{% endblock %}

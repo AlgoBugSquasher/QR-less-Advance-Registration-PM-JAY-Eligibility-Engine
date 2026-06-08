@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Select Department - Hospital Token System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>
+            <i class="fas fa-clinic-medical"></i>
+            Select Department
+        </h1>
+        <p>Choose the department you need to visit</p>
+    </div>
+</div>
+
+<div class="row">
+    {% for dept in departments %}
+    <div class="col-md-4">
+        <div class="card" style="cursor: pointer; transition: var(--transition);">
+            <div style="text-align: center; font-size: 4rem; margin-bottom: 1rem;">
+                {{ dept.icon }}
+            </div>
+            
+            <h3 style="text-align: center;">{{ dept.name }}</h3>
+            <p class="text-muted text-center">{{ dept.description }}</p>
+            
+            <div style="background: var(--light-gray); padding: 1rem; border-radius: 8px; margin: 1rem 0; text-align: center;">
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>Code:</strong> {{ dept.dept_code }}
+                </p>
+                <p style="margin-bottom: 0.5rem;">
+                    <strong>Queue:</strong> {{ dept.current_queue }} patients
+                </p>
+                <p style="margin-bottom: 0;">
+                    <strong>Est. Wait:</strong> 
+                    {% if dept.estimated_wait == 0 %}
+                        No wait
+                    {% elif dept.estimated_wait < 60 %}
+                        {{ dept.estimated_wait }} min
+                    {% else %}
+                        {{ (dept.estimated_wait // 60) }}h {{ (dept.estimated_wait % 60) }}m
+                    {% endif %}
+                </p>
+            </div>
+            
+            <a href="{{ url_for('token.generate_token', dept_code=dept.dept_code) }}" class="btn btn-primary btn-block">
+                <i class="fas fa-ticket-alt"></i> Generate Token
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Information Card -->
+<div style="background: #e3f2fd; padding: 2rem; border-radius: 10px; margin-top: 3rem; border-left: 4px solid var(--primary-color);">
+    <h3 style="color: var(--primary-color); margin-bottom: 1rem;">
+        <i class="fas fa-info-circle"></i> How It Works
+    </h3>
+    <ol style="margin-left: 1.5rem; line-height: 1.8;">
+        <li>Select your desired department from above</li>
+        <li>Review the estimated waiting time</li>
+        <li>Click "Generate Token" to confirm</li>
+        <li>Your token will be assigned instantly</li>
+        <li>Arrive at the hospital at your estimated time</li>
+        <li>Present your token at the department counter</li>
+    </ol>
+</div>
+
+<script>
+// Auto-refresh queue status every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

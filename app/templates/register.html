@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Hospital Token System{% endblock %}
+
+{% block content %}
+<div style="max-width: 500px; margin: 2rem auto;">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; color: var(--primary-color);">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <h1 style="margin-top: 1rem;">Create Account</h1>
+            <p class="text-muted">Join hospital remote token system</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm">
+            <!-- Full Name -->
+            <div class="form-group">
+                <label for="full_name">
+                    <i class="fas fa-user"></i> Full Name
+                </label>
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    id="full_name" 
+                    name="full_name" 
+                    placeholder="Enter your full name"
+                    required
+                    minlength="2"
+                >
+            </div>
+
+            <!-- Mobile Number -->
+            <div class="form-group">
+                <label for="mobile_number">
+                    <i class="fas fa-phone"></i> Mobile Number
+                </label>
+                <input 
+                    type="tel" 
+                    class="form-control" 
+                    id="mobile_number" 
+                    name="mobile_number" 
+                    placeholder="10-digit mobile number"
+                    pattern="[0-9\-\+\s]{10,13}"
+                    required
+                    onblur="checkMobileAvailability()"
+                >
+                <small class="text-muted">10-digit Indian mobile number</small>
+                <span id="mobileError" style="color: var(--danger-color); font-size: 0.9rem; display: none;">
+                    <i class="fas fa-exclamation-circle"></i> This mobile number is already registered
+                </span>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="email">
+                    <i class="fas fa-envelope"></i> Email Address
+                </label>
+                <input 
+                    type="email" 
+                    class="form-control" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Enter your email"
+                    required
+                    onblur="checkEmailAvailability()"
+                >
+                <span id="emailError" style="color: var(--danger-color); font-size: 0.9rem; display: none;">
+                    <i class="fas fa-exclamation-circle"></i> This email is already registered
+                </span>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i> Password
+                </label>
+                <input 
+                    type="password" 
+                    class="form-control" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Minimum 6 characters"
+                    required
+                    minlength="6"
+                    onchange="validatePasswords()"
+                >
+                <small class="text-muted">At least 6 characters long</small>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="form-group">
+                <label for="confirm_password">
+                    <i class="fas fa-check-circle"></i> Confirm Password
+                </label>
+                <input 
+                    type="password" 
+                    class="form-control" 
+                    id="confirm_password" 
+                    name="confirm_password" 
+                    placeholder="Re-enter your password"
+                    required
+                    onchange="validatePasswords()"
+                >
+                <span id="passwordError" style="color: var(--danger-color); font-size: 0.9rem; display: none;">
+                    <i class="fas fa-exclamation-circle"></i> Passwords do not match
+                </span>
+            </div>
+
+            <!-- Terms & Conditions -->
+            <div class="form-group" style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                <input 
+                    type="checkbox" 
+                    id="terms" 
+                    name="terms"
+                    style="width: 18px; height: 18px; cursor: pointer; margin-top: 2px;"
+                    required
+                >
+                <label for="terms" style="margin-bottom: 0; cursor: pointer;">
+                    I agree to the Terms & Conditions and Privacy Policy
+                </label>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-success btn-block" id="submitBtn">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </form>
+
+        <!-- Login Link -->
+        <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+            <p>Already have an account?</p>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-block">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function checkMobileAvailability() {
+    const mobile = document.getElementById('mobile_number').value.trim();
+    const errorSpan = document.getElementById('mobileError');
+    
+    if (!mobile || mobile.length < 10) {
+        errorSpan.style.display = 'none';
+        return;
+    }
+
+    fetch('{{ url_for("auth.check_mobile") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'mobile_number=' + encodeURIComponent(mobile)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            errorSpan.style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        } else {
+            errorSpan.style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+    });
+}
+
+function checkEmailAvailability() {
+    const email = document.getElementById('email').value.trim();
+    const errorSpan = document.getElementById('emailError');
+    
+    if (!email) {
+        errorSpan.style.display = 'none';
+        return;
+    }
+
+    fetch('{{ url_for("auth.check_email") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'email=' + encodeURIComponent(email)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exists) {
+            errorSpan.style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        } else {
+            errorSpan.style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+        }
+    });
+}
+
+function validatePasswords() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    const errorSpan = document.getElementById('passwordError');
+    
+    if (confirmPassword && password !== confirmPassword) {
+        errorSpan.style.display = 'block';
+        document.getElementById('submitBtn').disabled = true;
+    } else {
+        errorSpan.style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+    }
+}
+
+// Form submission validation
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        e.preventDefault();
+        alert('Passwords do not match');
+    }
+});
+</script>
+{% endblock %}

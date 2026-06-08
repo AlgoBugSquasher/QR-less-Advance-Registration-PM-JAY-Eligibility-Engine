@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+.voice-hero-section {
+    margin: 2rem 0;
+}
+
+.voice-hero-card {
+    background: linear-gradient(135deg, rgba(0, 86, 198, 0.98), rgba(3, 169, 244, 0.95));
+    border-radius: 28px;
+    padding: 2.5rem 2rem;
+    box-shadow: 0 24px 60px rgba(0, 94, 173, 0.25);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    color: white;
+    overflow: hidden;
+}
+
+.voice-hero-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 28px 68px rgba(0, 94, 173, 0.3);
+}
+
+.voice-hero-icon {
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.voice-hero-card h2 {
+    font-size: 2.4rem;
+    margin-bottom: 0.75rem;
+}
+
+.voice-hero-subtitle {
+    font-size: 1.12rem;
+    opacity: 0.92;
+    max-width: 720px;
+    margin: 0 auto 1.8rem;
+    line-height: 1.8;
+}
+
+.voice-cta-btn {
+    border-radius: 999px;
+    padding: 1rem 1.8rem;
+    font-size: 1.05rem;
+    background: linear-gradient(135deg, #00d4ff 0%, #0066cc 100%);
+    box-shadow: 0 16px 30px rgba(0, 102, 204, 0.35);
+}
+
+.voice-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e63946 0%, #9d0208 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    z-index: 1100;
+    text-decoration: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.voice-fab:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 768px) {
+    .voice-hero-card {
+        padding: 1.75rem 1.25rem;
+    }
+
+    .voice-hero-icon {
+        width: 88px;
+        height: 88px;
+        font-size: 2.5rem;
+    }
+
+    .voice-hero-card h2 {
+        font-size: 2rem;
+    }
+
+    .voice-hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .voice-cta-btn {
+        width: 100%;
+    }
+
+    .voice-fab {
+        width: 54px;
+        height: 54px;
+        bottom: 18px;
+        right: 18px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>
+            <i class="fas fa-hospital"></i>
+            Welcome to {{ hospital_name }}
+        </h1>
+        <p>Generate your OPD queue token from home and skip the waiting lines</p>
+    </div>
+</div>
+
+<div class="voice-hero-section">
+    <div class="voice-hero-card">
+        <div class="voice-hero-icon">
+            <i class="fas fa-microphone"></i>
+        </div>
+        <h2>Hindi Voice Assistant</h2>
+        <p class="voice-hero-subtitle">Bolkar apni problem bataye aur turant token generate kare</p>
+        <a href="{{ url_for('main.voice_assistant') }}" class="btn btn-primary voice-cta-btn">
+            <i class="fas fa-microphone"></i> 🎤 Start Voice Assistant
+        </a>
+    </div>
+</div>
+
+{% if user %}
+    <!-- User Home -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card text-center">
+                <h2><i class="fas fa-user"></i> {{ user.full_name }}</h2>
+                <p class="text-muted">{{ user.mobile_number }} | {{ user.email }}</p>
+                <a href="{{ url_for('token.departments') }}" class="btn btn-primary mt-3">
+                    <i class="fas fa-plus"></i> Generate New Token
+                </a>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <h3><i class="fas fa-list"></i> Quick Stats</h3>
+                <p style="font-size: 1.5rem; margin-top: 1rem;">
+                    <strong id="active-tokens">0</strong> Active Tokens
+                </p>
+                <a href="{{ url_for('token.my_tokens') }}" class="btn btn-secondary mt-3">
+                    <i class="fas fa-history"></i> View History
+                </a>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Guest Home -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card text-center p-4">
+                <h2><i class="fas fa-lock"></i> Not Logged In</h2>
+                <p>To generate a token, please login or create a new account.</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i> Register
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<a href="{{ url_for('main.voice_assistant') }}" class="voice-fab" aria-label="Start Voice Assistant">
+    <i class="fas fa-microphone"></i>
+</a>
+
+<!-- Departments Overview -->
+<h2 style="margin-bottom: 1.5rem;">
+    <i class="fas fa-clinic-medical"></i> Our Departments
+</h2>
+
+<div class="row">
+    {% for dept in departments %}
+    <div class="col-md-4">
+        <div class="card">
+            <div style="text-align: center; font-size: 3rem; margin-bottom: 1rem;">
+                {{ dept.icon }}
+            </div>
+            <h3>{{ dept.name }}</h3>
+            <p class="text-muted">{{ dept.description }}</p>
+            {% if user %}
+                <div style="text-align: center; margin-top: 1rem;">
+                    <p style="font-size: 0.9rem;">Department Code: <strong>{{ dept.dept_code }}</strong></p>
+                    <a href="{{ url_for('token.generate_token', dept_code=dept.dept_code) }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-ticket-alt"></i> Get Token
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Features Section -->
+<div style="margin-top: 4rem; padding: 2rem; background: var(--light-gray); border-radius: 10px;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">
+        <i class="fas fa-star"></i> Why Choose Us?
+    </h2>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <h3>Save Time</h3>
+                <p>Generate tokens from anywhere, skip long waiting lines at the hospital.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <h3>Mobile Friendly</h3>
+                <p>Fully responsive design works seamlessly on all devices and screen sizes.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--primary-color); margin-bottom: 1rem;">
+                    <i class="fas fa-heartbeat"></i>
+                </div>
+                <h3>Easy to Use</h3>
+                <p>Simple, intuitive interface designed for patients of all ages and technical abilities.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update active tokens count if user is logged in
+{% if user %}
+fetch('{{ url_for("token.my_tokens") }}')
+    .then(response => response.text())
+    .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const waitingTokens = doc.querySelectorAll('[data-status="waiting"]').length;
+        const inProgressTokens = doc.querySelectorAll('[data-status="in_progress"]').length;
+        document.getElementById('active-tokens').textContent = waitingTokens + inProgressTokens;
+    });
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Token - Hospital Token System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>
+            <i class="fas fa-ticket-alt"></i>
+            Generate Token
+        </h1>
+        <p>Confirm your token generation</p>
+    </div>
+</div>
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <div class="card mb-3">
+        <h2 style="text-align: center; margin-bottom: 1.5rem;">
+            {{ department.icon }} {{ department.name }}
+        </h2>
+
+        <div style="background: var(--light-gray); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <p class="text-muted" style="margin-bottom: 0.3rem;">Department Code</p>
+                    <p style="font-size: 1.2rem; font-weight: bold;">{{ department.dept_code }}</p>
+                </div>
+                <div>
+                    <p class="text-muted" style="margin-bottom: 0.3rem;">Current Queue</p>
+                    <p style="font-size: 1.2rem; font-weight: bold;">{{ estimated_queue_position - 1 }} patients</p>
+                </div>
+                <div>
+                    <p class="text-muted" style="margin-bottom: 0.3rem;">Your Position</p>
+                    <p style="font-size: 1.5rem; font-weight: bold; color: var(--primary-color);">
+                        #{{ estimated_queue_position }}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-muted" style="margin-bottom: 0.3rem;">Estimated Wait</p>
+                    <p style="font-size: 1.2rem; font-weight: bold;">
+                        {% if estimated_wait_time == 0 %}
+                            No wait
+                        {% elif estimated_wait_time < 60 %}
+                            {{ estimated_wait_time }} min
+                        {% else %}
+                            {{ (estimated_wait_time // 60) }}h {{ (estimated_wait_time % 60) }}m
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); margin-top: 1rem; padding-top: 1rem;">
+                <p class="text-muted" style="margin-bottom: 0.3rem;">Estimated Arrival Time</p>
+                <p style="font-size: 1.3rem; font-weight: bold; color: var(--success-color);">
+                    <i class="fas fa-clock"></i> {{ estimated_arrival_time }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border-left: 4px solid var(--warning-color);">
+            <p style="margin-bottom: 0;">
+                <strong><i class="fas fa-lightbulb"></i> Tip:</strong>
+                Please arrive approximately 5 minutes before your estimated time. Your token will remain valid for the day.
+            </p>
+        </div>
+
+        <!-- Confirmation Text -->
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <p class="text-muted">
+                By proceeding, you confirm that you will visit {{ department.name }} at the estimated time.
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem;">
+            <form method="POST" action="{{ url_for('token.generate_token', dept_code=department.dept_code) }}" style="flex: 1;">
+                <button type="submit" class="btn btn-success btn-block">
+                    <i class="fas fa-check-circle"></i> Confirm & Generate Token
+                </button>
+            </form>
+            <a href="{{ url_for('token.departments') }}" class="btn btn-secondary btn-block">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="card">
+        <h4>
+            <i class="fas fa-question-circle"></i> Important Information
+        </h4>
+        <ul style="margin-left: 1.5rem; line-height: 1.8;">
+            <li>Each token is valid for the date of generation only</li>
+            <li>Once token is generated, it cannot be changed to another department</li>
+            <li>You can cancel token up to 30 minutes before your estimated time</li>
+            <li>In case of emergency or unavoidable circumstances, please call the hospital</li>
+            <li>Bring valid ID and insurance card (if applicable) at the time of visit</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
