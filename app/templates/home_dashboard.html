@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Home Dashboard - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+.dashboard-header {
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.dashboard-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+}
+
+.dashboard-header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+.dashboard-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.dashboard-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 102, 204, 0.1);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Remove underline / text-decoration for card links in all states */
+.dashboard-card,
+.dashboard-card:link,
+.dashboard-card:visited,
+.dashboard-card:hover,
+.dashboard-card:active,
+.dashboard-card:focus {
+    text-decoration: none !important;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 50px rgba(0, 102, 204, 0.2);
+    border-color: var(--primary-color);
+}
+
+.dashboard-card .card-icon {
+    font-size: 4.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-dark);
+}
+
+.dashboard-card .card-description {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.dashboard-card .btn {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 50px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.btn-voice {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-voice:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.btn-manual {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(245, 87, 108, 0.3);
+}
+
+.btn-manual:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(245, 87, 108, 0.4);
+}
+
+.welcome-section {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.05), rgba(0, 212, 255, 0.05));
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.welcome-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.welcome-section p {
+    color: var(--text-light);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .dashboard-header h1 {
+        font-size: 2rem;
+    }
+
+    .dashboard-cards {
+        gap: 1.5rem;
+    }
+
+    .dashboard-card {
+        padding: 2rem;
+    }
+
+    .dashboard-card .card-icon {
+        font-size: 3.5rem;
+    }
+
+    .dashboard-card h2 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>👋 Welcome, {{ user.full_name }}!</h1>
+        <p>Choose how you'd like to get your token</p>
+    </div>
+
+    <div class="welcome-section">
+        <h3><i class="fas fa-info-circle"></i> Quick Start</h3>
+        <p>Select one of the options below to generate your hospital token and get in the queue.</p>
+    </div>
+
+    <div class="dashboard-cards">
+        <!-- Voice Assistant Card -->
+        <a href="{{ url_for('main.voice_assistant') }}" class="dashboard-card">
+            <div class="card-icon">🎤</div>
+            <h2>Hindi Voice Assistant</h2>
+            <p class="card-description">
+                Speak your symptoms in Hindi and let our AI guide you to the right department automatically.
+            </p>
+            <button class="btn btn-voice" type="button">
+                <i class="fas fa-microphone"></i> Start Assistant
+            </button>
+        </a>
+
+        <!-- Manual Selection Card -->
+        <a href="{{ url_for('token.departments') }}" class="dashboard-card">
+            <div class="card-icon">📋</div>
+            <h2>Manual Selection</h2>
+            <p class="card-description">
+                Choose your department manually and generate a token instantly.
+            </p>
+            <button class="btn btn-manual" type="button">
+                <i class="fas fa-list"></i> Select Department
+            </button>
+        </a>
+    </div>
+</div>
+{% endblock %}

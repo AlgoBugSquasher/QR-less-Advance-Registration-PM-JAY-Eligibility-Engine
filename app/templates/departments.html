@@ -67,9 +67,36 @@
 </div>
 
 <script>
-// Auto-refresh queue status every 30 seconds
+// Auto-refresh department statistics every 60 seconds (non-intrusive update)
 setInterval(function() {
-    location.reload();
-}, 30000);
+    fetch('{{ url_for("token.get_departments_stats") }}')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.success && data.departments) {
+                data.departments.forEach(dept => {
+                    const card = document.querySelector(`.card[data-dept-code="${dept.dept_code}"]`);
+                    if (card) {
+                        const queueEl = card.querySelector('.card-body p:nth-of-type(2)');
+                        const waitEl = card.querySelector('.card-body p:nth-of-type(3)');
+                        if (queueEl) queueEl.textContent = '✓ Queue: ' + dept.current_queue + ' patients';
+                        if (waitEl) {
+                            let waitText = 'Est. Wait: ';
+                            if (dept.estimated_wait === 0) {
+                                waitText += 'No wait';
+                            } else if (dept.estimated_wait < 60) {
+                                waitText += dept.estimated_wait + ' min';
+                            } else {
+                                const hours = Math.floor(dept.estimated_wait / 60);
+                                const mins = dept.estimated_wait % 60;
+                                waitText += hours + 'h ' + mins + 'm';
+                            }
+                            waitEl.textContent = '✓ ' + waitText;
+                        }
+                    }
+                });
+            }
+        })
+        .catch(err => console.error('Error refreshing stats:', err));
+}, 60000);
 </script>
 {% endblock %}

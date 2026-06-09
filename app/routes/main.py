@@ -15,16 +15,30 @@ main_bp = Blueprint('main', __name__)
 @main_bp.route('/')
 def home():
     """
-    Home page route
-    Shows hospital welcome page with department overview
+    Portal selection page
+    Shows User Portal and Admin Portal options
     """
     user_info = get_current_user_info()
-    departments = Department.get_all_departments()
+    
+    # If user is already logged in, redirect to dashboard
+    if user_info:
+        return redirect(url_for('main.home_dashboard'))
+    
+    return render_template('portal_selection.html')
+
+
+@main_bp.route('/home-dashboard')
+@login_required
+def home_dashboard():
+    """
+    Home dashboard after login
+    Shows Voice Assistant and Manual Selection options
+    """
+    user_info = get_current_user_info()
     
     return render_template(
-        'home.html',
+        'home_dashboard.html',
         user=user_info,
-        departments=departments,
         hospital_name=os.getenv('HOSPITAL_NAME', 'City Hospital & Diagnostic Center')
     )
 
@@ -50,6 +64,43 @@ def dashboard():
     )
 
 
+@main_bp.route('/my-tokens')
+@login_required
+def my_tokens():
+    """
+    My Tokens page
+    Shows user's current and past tokens
+    """
+    user_info = get_current_user_info()
+    tokens = Token.get_user_tokens(user_info['user_id'])
+
+    formatted_tokens = []
+    for token in tokens:
+        arrival_info = None
+        try:
+            from app.utils.token_generator import calculate_estimated_arrival_time
+            arrival_info = calculate_estimated_arrival_time(token.get('queue_position', 1))
+        except Exception:
+            arrival_info = {'arrival_time': 'N/A'}
+
+        formatted_tokens.append({
+            'token_id': token.get('_id'),
+            'token_number': token.get('token_number'),
+            'department': token.get('dept_name'),
+            'queue_position': token.get('queue_position'),
+            'estimated_wait_time': token.get('estimated_wait_time', 0),
+            'estimated_arrival_time': arrival_info.get('arrival_time'),
+            'status': token.get('status'),
+            'created_at': token.get('created_at').strftime('%d %b %Y %H:%M') if token.get('created_at') else None
+        })
+
+    return render_template(
+        'my_tokens.html',
+        user=user_info,
+        tokens=formatted_tokens
+    )
+
+
 @main_bp.route('/about')
 def about():
     """About page"""
@@ -67,7 +118,7 @@ def voice_assistant():
     """Hindi Voice Assistant page"""
     user_info = get_current_user_info()
     return render_template(
-        'voice_assistant.html',
+        'voice_assistant_redesigned.html',
         user=user_info
     )
 

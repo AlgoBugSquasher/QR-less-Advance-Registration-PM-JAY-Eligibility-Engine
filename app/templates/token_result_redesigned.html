@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Token Result - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+.token-result-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.token-result-card {
+    background: white;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    box-shadow: 0 20px 60px rgba(0, 102, 204, 0.15);
+    text-align: center;
+}
+
+.result-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.result-success-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.result-success h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.result-success p {
+    font-size: 1.05rem;
+    opacity: 0.95;
+}
+
+.token-details {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.detail-item {
+    text-align: center;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.detail-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.department-section {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.department-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.wait-time-section {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.wait-time-section p {
+    color: #856404;
+    margin: 0;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
+    margin-top: 2rem;
+}
+
+.btn-action {
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-print {
+    background: linear-gradient(135deg, #0066cc 0%, #004ba6 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(0, 102, 204, 0.3);
+}
+
+.btn-print:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(0, 102, 204, 0.4);
+}
+
+.btn-tokens {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-tokens:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.btn-home {
+    background: #6c757d;
+    color: white;
+    box-shadow: 0 10px 25px rgba(108, 117, 125, 0.3);
+}
+
+.btn-home:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(108, 117, 125, 0.4);
+}
+
+.instruction-box {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.instruction-box h4 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.instruction-box ul {
+    list-style: none;
+    color: var(--text-dark);
+    margin: 0;
+    padding: 0;
+}
+
+.instruction-box li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.instruction-box li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #28a745;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .token-result-container {
+        padding: 1rem;
+    }
+
+    .token-result-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .detail-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .detail-value {
+        font-size: 2rem;
+    }
+
+    .result-success-icon {
+        font-size: 2.5rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-action {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="token-result-container">
+    <div class="token-result-card">
+        <!-- Success Message -->
+        <div class="result-success">
+            <div class="result-success-icon">✅</div>
+            <h2>Token Generated!</h2>
+            <p>Your token has been successfully generated</p>
+        </div>
+
+        <!-- Token Details -->
+        <div class="token-details">
+            <div class="detail-row">
+                <div class="detail-item">
+                    <div class="detail-label">Token Number</div>
+                    <div class="detail-value">{{ token.token_number }}</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Queue Position</div>
+                    <div class="detail-value">#{{ queue_position }}</div>
+                </div>
+            </div>
+
+            <!-- Department -->
+            <div class="department-section">
+                <div class="detail-label">Department</div>
+                <div class="department-name">{{ department.name }}</div>
+            </div>
+
+            <!-- Wait Time -->
+            <div class="wait-time-section">
+                <p>
+                    <i class="fas fa-hourglass-start"></i>
+                    Estimated Wait Time: <strong>{{ estimated_wait_time }}</strong> minutes
+                </p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="{{ url_for('token.print_token', token_id=token._id) }}" class="btn-action btn-print">
+                <i class="fas fa-print"></i> Print Token
+            </a>
+            <a href="{{ url_for('main.my_tokens') }}" class="btn-action btn-tokens">
+                <i class="fas fa-list"></i> My Tokens
+            </a>
+            <a href="{{ url_for('main.home_dashboard') }}" class="btn-action btn-home">
+                <i class="fas fa-home"></i> Back to Home
+            </a>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instruction-box">
+            <h4><i class="fas fa-info-circle"></i> Next Steps</h4>
+            <ul>
+                <li>Arrive at the hospital with your token</li>
+                <li>Go to the <strong>{{ department.name }}</strong> counter</li>
+                <li>Present your token <strong>#{{ token.token_number }}</strong></li>
+                <li>You should be called within approximately <strong>{{ estimated_wait_time }}</strong> minutes</li>
+                <li>Keep your token safe for reference</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

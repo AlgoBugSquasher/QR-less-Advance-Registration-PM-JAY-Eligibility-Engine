@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+
+{% block title %}Select Department - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+.departments-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.departments-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.departments-header h1 {
+    font-size: 2.5rem;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.departments-header p {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+.departments-grid {
+    display: grid;
+    /* slightly narrower cards so more fit on a row */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+}
+
+.department-card {
+    background: white;
+    /* compact card */
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 102, 204, 0.08);
+    cursor: pointer;
+    transition: all 0.28s ease;
+    border: 2px solid transparent;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.department-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 40px rgba(0, 102, 204, 0.18);
+    border-color: var(--primary-color);
+}
+
+.department-card.selected {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.05), rgba(0, 212, 255, 0.05));
+    border-color: var(--primary-color);
+}
+
+.department-icon {
+    /* slightly smaller icon for compact look (~17% smaller) */
+    font-size: 3.3rem;
+    margin-bottom: 0.75rem;
+}
+
+.department-name {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.25rem;
+}
+
+.department-description {
+    font-size: 0.92rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    line-height: 1.45;
+}
+
+.department-code {
+    background: #f8f9fa;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+    width: 100%;
+}
+
+.queue-info {
+    background: linear-gradient(135deg, rgba(0, 102, 204, 0.08), rgba(0, 212, 255, 0.08));
+    padding: 0.75rem;
+    border-radius: 10px;
+    width: 100%;
+    margin-bottom: 0.75rem;
+}
+
+.queue-info-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.35rem;
+    font-size: 0.92rem;
+}
+
+.queue-info-row:last-child {
+    margin-bottom: 0;
+}
+
+.queue-info-label {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.queue-info-value {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.checkbox-indicator {
+    display: none;
+    font-size: 1.25rem;
+    color: #28a745;
+}
+
+.department-card.selected .checkbox-indicator {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.btn-generate {
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.btn-generate:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+}
+
+.btn-generate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.btn-action {
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-back {
+    background: #6c757d;
+    color: white;
+    box-shadow: 0 10px 25px rgba(108, 117, 125, 0.3);
+}
+
+.btn-back:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 35px rgba(108, 117, 125, 0.4);
+}
+
+.info-card {
+    background: #e3f2fd;
+    border-left: 4px solid var(--primary-color);
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-top: 3rem;
+}
+
+/* Selected department panel */
+.selected-department-panel {
+    max-width: 900px;
+    margin: 1rem auto 1.5rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+.selected-department {
+    background: #f8f9fa;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    color: var(--text-dark);
+    width: 100%;
+    max-width: 640px;
+    text-align: center;
+    border: 1px solid transparent;
+}
+.helper-text {
+    color: var(--text-light);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+/* Modal styles (confirm + success) */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1100;
+}
+.modal.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.38);
+    backdrop-filter: blur(4px);
+}
+.modal-content {
+    position: relative;
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 30px 80px rgba(2,6,23,0.2);
+    transform: translateY(8px);
+    transition: transform 0.25s ease;
+    z-index: 1150;
+}
+.modal.open .modal-content {
+    transform: translateY(0);
+}
+.modal-header {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+.modal-body {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+.modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+.btn-ghost {
+    background: transparent;
+    border: 1px solid #ddd;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.success-token {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.25rem;
+}
+
+.info-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.info-card ol {
+    margin-left: 1.5rem;
+    line-height: 1.8;
+    color: var(--text-dark);
+}
+
+.info-card li {
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .departments-container {
+        padding: 0.75rem;
+    }
+
+    .departments-header h1 {
+        font-size: 1.9rem;
+    }
+
+    .departments-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .department-card {
+        padding: 1rem;
+    }
+
+    .department-icon {
+        font-size: 2.6rem;
+    }
+
+    .department-name {
+        font-size: 1.15rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-generate,
+    .btn-action {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="departments-container">
+    <div class="departments-header">
+        <h1>📋 Select Your Department</h1>
+        <p>Choose the department you need to visit and generate your token</p>
+    </div>
+
+    <!-- Departments Grid -->
+    <div class="departments-grid" id="departmentsGrid">
+        {% for dept in departments %}
+        <div class="department-card" data-dept-code="{{ dept.dept_code }}" data-dept-name="{{ dept.name }}">
+            <div class="checkbox-indicator">✓</div>
+            <div class="department-icon">{{ dept.icon }}</div>
+            <div class="department-name">{{ dept.name }}</div>
+            <div class="department-description">{{ dept.description }}</div>
+            <div class="department-code">Code: {{ dept.dept_code }}</div>
+            <div class="queue-info">
+                <div class="queue-info-row">
+                    <span class="queue-info-label">Queue:</span>
+                    <span class="queue-info-value">{{ dept.current_queue }} patients</span>
+                </div>
+                <div class="queue-info-row">
+                    <span class="queue-info-label">Est. Wait:</span>
+                    <span class="queue-info-value">
+                        {% if dept.estimated_wait == 0 %}
+                            No wait
+                        {% elif dept.estimated_wait < 60 %}
+                            {{ dept.estimated_wait }} min
+                        {% else %}
+                            {{ (dept.estimated_wait // 60) }}h {{ (dept.estimated_wait % 60) }}m
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Selected Department + Action Buttons -->
+    <div class="selected-department-panel" id="selectedDepartmentPanel">
+        <p class="helper-text">Select a department and then click Generate Token.</p>
+        <div class="selected-department" id="selectedDepartmentDisplay">✅ Selected Department: <span id="selectedDeptName">None</span></div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirmModal" aria-hidden="true">
+        <div class="modal-backdrop" id="confirmBackdrop"></div>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+            <div class="modal-header" id="confirmTitle">Department Selected</div>
+            <div class="modal-body">
+                <div style="margin-bottom:0.5rem;">You selected</div>
+                <div style="font-weight:700; font-size:1.1rem; margin-bottom:0.5rem;" id="confirmDeptName">Department Name</div>
+                <div>Generate token for this department?</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-action btn-generate" id="btnConfirmGenerate"><i class="fas fa-ticket-alt"></i> Generate Token</button>
+                <button class="btn-ghost" id="btnConfirmChange">Change Department</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal" aria-hidden="true">
+        <div class="modal-backdrop" id="successBackdrop"></div>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+            <div class="modal-header" id="successTitle">Token Generated</div>
+            <div class="modal-body">
+                <div class="success-token" id="successTokenNumber">GEN-0001</div>
+                <div id="successDeptName" style="margin-bottom:0.5rem;">Department Name</div>
+                <div style="margin-bottom:0.75rem;">Your token has been generated successfully.</div>
+            </div>
+            <div class="modal-actions">
+                <a href="#" class="btn-action" id="btnPrintToken"><i class="fas fa-print"></i> Print Token</a>
+                <a href="{{ url_for('main.my_tokens') }}" class="btn-action" id="btnViewTokens"><i class="fas fa-history"></i> View My Tokens</a>
+                <button class="btn-ghost" id="btnSuccessChange">Change Department</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{{ url_for('main.home_dashboard') }}" class="btn-action btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+
+    <!-- Information Card -->
+    <div class="info-card">
+        <h3><i class="fas fa-info-circle"></i> How It Works</h3>
+        <ol>
+            <li>Select your desired department from above</li>
+            <li>Review the current queue and estimated wait time</li>
+            <li>Click "Generate Token" to confirm</li>
+            <li>Your token will be assigned instantly</li>
+            <li>You can print your token or view it in "My Tokens"</li>
+        </ol>
+    </div>
+</div>
+
+<script>
+let selectedDept = null;
+
+/**
+ * Format estimated wait time for display
+ * @param {number} waitMinutes - Wait time in minutes
+ * @returns {string} Formatted wait time
+ */
+function formatWaitTime(waitMinutes) {
+    if (!waitMinutes || waitMinutes === 0) {
+        return 'No wait';
+    }
+    if (waitMinutes < 60) {
+        return `${waitMinutes} min`;
+    }
+    const hours = Math.floor(waitMinutes / 60);
+    const minutes = waitMinutes % 60;
+    if (minutes === 0) {
+        return `${hours}h`;
+    }
+    return `${hours}h ${minutes}m`;
+}
+
+/**
+ * Update a single department card with fresh statistics
+ * @param {string} deptCode - Department code
+ * @param {object} stats - Fresh statistics {current_queue, estimated_wait}
+ */
+function updateDepartmentCard(deptCode, stats) {
+    const card = document.querySelector(`.department-card[data-dept-code="${deptCode}"]`);
+    if (!card) return;
+    
+    // Update queue value
+    const queueValueEl = card.querySelector('.queue-info-value');
+    if (queueValueEl) {
+        const queueRow = queueValueEl.closest('.queue-info-row');
+        if (queueRow) {
+            queueValueEl.textContent = `${stats.current_queue} patients`;
+            // Add a pulse animation
+            queueValueEl.style.animation = 'none';
+            setTimeout(() => {
+                queueValueEl.style.animation = 'pulse 0.6s ease';
+            }, 10);
+        }
+    }
+    
+    // Update wait time value
+    const allQueueValues = card.querySelectorAll('.queue-info-value');
+    if (allQueueValues.length >= 2) {
+        const waitValueEl = allQueueValues[1];
+        waitValueEl.textContent = formatWaitTime(stats.estimated_wait);
+        // Add a pulse animation
+        waitValueEl.style.animation = 'none';
+        setTimeout(() => {
+            waitValueEl.style.animation = 'pulse 0.6s ease';
+        }, 10);
+    }
+}
+
+/**
+ * Fetch fresh department statistics from server and update all cards
+ * @param {string} highlightDeptCode - (Optional) Department code to highlight after update
+ */
+function refreshDepartmentStats(highlightDeptCode = null) {
+    fetch('{{ url_for("token.get_departments_stats") }}')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.success && data.departments) {
+                data.departments.forEach(dept => {
+                    updateDepartmentCard(dept.dept_code, {
+                        current_queue: dept.current_queue,
+                        estimated_wait: dept.estimated_wait
+                    });
+                });
+                
+                // Highlight the selected department card if specified
+                if (highlightDeptCode) {
+                    const card = document.querySelector(`.department-card[data-dept-code="${highlightDeptCode}"]`);
+                    if (card) {
+                        card.style.backgroundColor = '#e8f4f8';
+                        setTimeout(() => {
+                            card.style.backgroundColor = '';
+                        }, 2000);
+                    }
+                }
+            }
+        })
+        .catch(err => console.error('Error refreshing department stats:', err));
+}
+
+// Add pulse animation to stylesheet if not exists
+if (!document.querySelector('style[data-pulse-animation]')) {
+    const style = document.createElement('style');
+    style.setAttribute('data-pulse-animation', 'true');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+
+// Modal helpers
+function openModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.add('open');
+    modalEl.setAttribute('aria-hidden', 'false');
+}
+
+function closeModal(modalEl) {
+    if (!modalEl) return;
+    modalEl.classList.remove('open');
+    modalEl.setAttribute('aria-hidden', 'true');
+}
+
+// Show confirm modal on selection
+document.querySelectorAll('.department-card').forEach(card => {
+    card.addEventListener('click', () => {
+        // selection handled above; now show modal
+        const deptName = card.dataset.deptName || 'Department';
+        const deptCode = card.dataset.deptCode || '';
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmDeptName = document.getElementById('confirmDeptName');
+        if (confirmDeptName) confirmDeptName.textContent = deptName;
+        // store selection
+        selectedDept = { code: deptCode, name: deptName };
+        // update selected panel
+        const nameEl = document.getElementById('selectedDeptName');
+        if (nameEl) nameEl.textContent = deptName;
+
+        openModal(confirmModal);
+    });
+});
+
+// Confirm modal actions
+const btnConfirmGenerate = document.getElementById('btnConfirmGenerate');
+const btnConfirmChange = document.getElementById('btnConfirmChange');
+const confirmModalEl = document.getElementById('confirmModal');
+const successModalEl = document.getElementById('successModal');
+
+// Reset selection helper
+function resetSelection() {
+    // remove visual selection
+    document.querySelectorAll('.department-card.selected').forEach(c => c.classList.remove('selected'));
+    // clear selectedDept state
+    selectedDept = null;
+    // reset display
+    const nameEl = document.getElementById('selectedDeptName');
+    if (nameEl) nameEl.textContent = 'None';
+}
+
+if (btnConfirmChange) btnConfirmChange.addEventListener('click', () => {
+    // close modal and clear selection so user can choose again
+    closeModal(confirmModalEl);
+    resetSelection();
+});
+
+if (btnConfirmGenerate) btnConfirmGenerate.addEventListener('click', () => {
+    if (!selectedDept || !selectedDept.code) return;
+    btnConfirmGenerate.disabled = true;
+    btnConfirmGenerate.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+    fetch('{{ url_for("token.generate_token_api") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dept_code: selectedDept.code })
+    })
+    .then(r => r.json())
+    .then(data => {
+        btnConfirmGenerate.disabled = false;
+        btnConfirmGenerate.innerHTML = '<i class="fas fa-ticket-alt"></i> Generate Token';
+        closeModal(confirmModalEl);
+
+        if (data && data.success && data.token) {
+            const tokenId = data.token._id || data.token['_id'] || '';
+            const tokenNumber = data.token.token_number || data.token.token_number || '';
+            const deptName = data.token.dept_name || selectedDept.name || '';
+
+            // populate success modal
+            const successTokenEl = document.getElementById('successTokenNumber');
+            const successDeptEl = document.getElementById('successDeptName');
+            const btnPrint = document.getElementById('btnPrintToken');
+            if (successTokenEl) successTokenEl.textContent = tokenNumber || tokenId;
+            if (successDeptEl) successDeptEl.textContent = deptName;
+            if (btnPrint) btnPrint.href = '{{ url_for("token.print_token", token_id="") }}' + tokenId;
+
+            // IMPORTANT: Refresh department statistics after successful token generation
+            // This updates the queue count and estimated wait time for all departments
+            refreshDepartmentStats(selectedDept.code);
+
+            openModal(successModalEl);
+        } else {
+            alert('Failed to generate token: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        btnConfirmGenerate.disabled = false;
+        btnConfirmGenerate.innerHTML = '<i class="fas fa-ticket-alt"></i> Generate Token';
+        closeModal(confirmModalEl);
+        alert('An error occurred while generating the token.');
+    });
+});
+
+// Success modal change department
+const btnSuccessChange = document.getElementById('btnSuccessChange');
+if (btnSuccessChange) btnSuccessChange.addEventListener('click', () => {
+    closeModal(successModalEl);
+    // clear selection to allow choosing another department
+    resetSelection();
+});
+
+// Clicking backdrop closes modals
+document.getElementById('confirmBackdrop')?.addEventListener('click', () => closeModal(confirmModalEl));
+document.getElementById('successBackdrop')?.addEventListener('click', () => closeModal(successModalEl));
+
+</script>
+{% endblock %}

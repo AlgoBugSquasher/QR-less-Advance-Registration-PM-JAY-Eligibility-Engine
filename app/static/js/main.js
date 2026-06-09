@@ -161,6 +161,8 @@ function setupNavigation() {
     // Highlight current page in navbar
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
     const navLinks = document.querySelectorAll('.nav-link');
+    const navToggle = document.getElementById('navToggle');
+    const navbarMenu = document.getElementById('navbarMenu');
 
     navLinks.forEach(link => {
         const href = link.getAttribute('href');
@@ -169,6 +171,29 @@ function setupNavigation() {
             link.style.borderBottom = '2px solid var(--accent-color)';
         }
     });
+
+    if (navToggle && navbarMenu) {
+        navToggle.addEventListener('click', function() {
+            const isOpen = navbarMenu.classList.toggle('open');
+            this.setAttribute('aria-expanded', isOpen);
+        });
+
+        navbarMenu.addEventListener('click', function(event) {
+            const clickedLink = event.target.closest('.nav-link');
+            const clickedLogout = event.target.closest('.btn-logout');
+            if (clickedLink || clickedLogout) {
+                navbarMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', false);
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                navbarMenu.classList.remove('open');
+                navToggle.setAttribute('aria-expanded', false);
+            }
+        });
+    }
 }
 
 /**

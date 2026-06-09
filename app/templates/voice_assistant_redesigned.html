@@ -1,0 +1,1064 @@
+{% extends "base.html" %}
+
+{% block title %}Hindi Voice Assistant - Hospital Token System{% endblock %}
+
+{% block extra_css %}
+<style>
+.voice-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.voice-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* LEFT SIDE - VOICE CONTROL */
+.voice-control-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 102, 204, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.voice-control-section h2 {
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--text-dark);
+}
+
+.microphone-icon {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    color: white;
+    margin-bottom: 2rem;
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+    animation: pulse-idle 2s infinite;
+}
+
+@keyframes pulse-idle {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.microphone-icon.listening {
+    animation: pulse-listening 0.6s infinite;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+@keyframes pulse-listening {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 15px 40px rgba(245, 87, 108, 0.3);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 20px 50px rgba(245, 87, 108, 0.5);
+    }
+}
+
+.status-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+    text-align: center;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-box strong {
+    color: var(--primary-color);
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    background-color: #999;
+}
+
+.status-indicator.listening {
+    background-color: #e63946;
+    animation: blink 0.6s infinite;
+}
+
+@keyframes blink {
+    0%, 50%, 100% {
+        opacity: 1;
+    }
+    25%, 75% {
+        opacity: 0.5;
+    }
+}
+
+.status-indicator.processing {
+    background-color: #ffc107;
+    animation: pulse-processing 1s infinite;
+}
+
+@keyframes pulse-processing {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.status-indicator.success {
+    background-color: #28a745;
+}
+
+.status-indicator.speaking {
+    background-color: #0066cc;
+    animation: pulse-processing 1s infinite;
+}
+
+.voice-buttons {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.btn-voice-action {
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-start {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    flex: 1;
+    min-width: 200px;
+}
+
+.btn-start:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.btn-start:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-retry {
+    background: #ffc107;
+    color: #333;
+    box-shadow: 0 10px 25px rgba(255, 193, 7, 0.3);
+    display: none;
+}
+
+.btn-home {
+    background: #28a745;
+    color: white;
+    box-shadow: 0 10px 25px rgba(40, 167, 69, 0.3);
+    display: none;
+    flex: 1;
+    min-width: 150px;
+}
+
+.btn-home:hover {
+    transform: scale(1.05);
+}
+
+.btn-print {
+    background: #0066cc;
+    color: white;
+    box-shadow: 0 10px 25px rgba(0, 102, 204, 0.3);
+    display: none;
+    flex: 1;
+    min-width: 150px;
+}
+
+.btn-print:hover {
+    transform: scale(1.05);
+}
+
+.transcript-section {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.transcript-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-dark);
+}
+
+.transcript-text {
+    color: #475569;
+    font-style: italic;
+    min-height: 30px;
+}
+
+/* RIGHT SIDE - CONVERSATION HISTORY */
+.conversation-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 102, 204, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.conversation-section h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-dark);
+}
+
+.conversation-area {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.5rem;
+    min-height: 400px;
+    max-height: 600px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.conversation-empty {
+    color: #999;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.message {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.assistant {
+    justify-content: flex-start;
+}
+
+.message.user {
+    justify-content: flex-end;
+}
+
+.message-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.message.assistant .message-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.message.user .message-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.message-content {
+    max-width: 80%;
+    padding: 1rem;
+    border-radius: 10px;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.message.assistant .message-content {
+    background: #e3f2fd;
+    color: #0d47a1;
+    border-left: 3px solid #0066cc;
+}
+
+.message.user .message-content {
+    background: #fff3e0;
+    color: #5d4037;
+    border-left: 3px solid #f5576c;
+}
+
+.token-result-box {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    display: none;
+}
+
+.token-result-box h3 {
+    margin-bottom: 1rem;
+}
+
+.token-result-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.token-result-item {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.75rem;
+    border-radius: 6px;
+}
+
+.token-result-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+}
+
+.token-result-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Instructions Card */
+.instructions-card {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.instructions-card h3 {
+    color: #92400e;
+    margin-bottom: 1rem;
+}
+
+.instructions-card ul {
+    list-style: none;
+    color: #78350f;
+}
+
+.instructions-card li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.instructions-card li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #d97706;
+    font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .voice-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+
+    .conversation-area {
+        min-height: 300px;
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .voice-container {
+        padding: 1rem;
+    }
+
+    .voice-control-section,
+    .conversation-section {
+        padding: 1.5rem;
+    }
+
+    .microphone-icon {
+        width: 100px;
+        height: 100px;
+        font-size: 3rem;
+    }
+
+    .btn-voice-action {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    .message-content {
+        max-width: 100%;
+    }
+
+    .token-result-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="voice-container">
+    <div class="voice-layout">
+        <!-- LEFT SIDE: VOICE CONTROL -->
+        <div class="voice-control-section">
+            <h2>🎤 Voice Assistant</h2>
+
+            <!-- Microphone Icon -->
+            <div id="microphoneIcon" class="microphone-icon">
+                🎤
+            </div>
+
+            <!-- Status Box -->
+            <div class="status-box">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <strong>Status: <span id="voiceStatus">Ready</span></strong>
+            </div>
+
+            <!-- Transcript -->
+            <div class="transcript-section">
+                <div class="transcript-label">Your Speech:</div>
+                <div class="transcript-text" id="transcriptBox">
+                    —
+                </div>
+            </div>
+
+            <!-- Voice Warning -->
+            <div id="voiceWarning" style="display:none; padding:1rem; margin-bottom:1rem; background-color:#fee; border:1px solid #fcc; border-radius:6px; color:#c00; width: 100%; text-align: center;">
+                ⚠️ <span id="warningText">Warning message</span>
+            </div>
+
+            <!-- Buttons -->
+            <div class="voice-buttons">
+                <button id="startButton" class="btn-voice-action btn-start">
+                    <i class="fas fa-play"></i> Start Assistant
+                </button>
+                <button id="retryButton" class="btn-voice-action btn-retry">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+                <a id="printButton" href="#" class="btn-voice-action btn-print">
+                    <i class="fas fa-print"></i> Print Token
+                </a>
+                <a id="homeButton" href="{{ url_for('main.home_dashboard') }}" class="btn-voice-action btn-home">
+                    <i class="fas fa-home"></i> Home
+                </a>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDE: CONVERSATION HISTORY -->
+        <div class="conversation-section">
+            <h2>💬 Live Conversation</h2>
+
+            <!-- Conversation Area -->
+            <div class="conversation-area" id="conversationArea">
+                <div class="conversation-empty">
+                    <p>Start the voice assistant to see conversation here...</p>
+                </div>
+            </div>
+
+            <!-- Token Result Box -->
+            <div class="token-result-box" id="tokenResultBox">
+                <h3>✅ Token Generated Successfully!</h3>
+                <div class="token-result-grid">
+                    <div class="token-result-item">
+                        <div class="token-result-label">Department</div>
+                        <div class="token-result-value" id="resultDepartment">—</div>
+                    </div>
+                    <div class="token-result-item">
+                        <div class="token-result-label">Token #</div>
+                        <div class="token-result-value" id="resultToken">—</div>
+                    </div>
+                    <div class="token-result-item">
+                        <div class="token-result-label">Queue Position</div>
+                        <div class="token-result-value" id="resultPosition">—</div>
+                    </div>
+                    <div class="token-result-item">
+                        <div class="token-result-label">Est. Wait</div>
+                        <div class="token-result-value" id="resultWait">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions-card">
+        <h3><i class="fas fa-info-circle"></i> How to Use</h3>
+        <ul>
+            <li>Click "Start Assistant" button to begin</li>
+            <li>Wait for the greeting: "नमस्ते। कृपया अपनी समस्या बताइए।" (Hello, please describe your problem)</li>
+            <li>Describe your symptoms in Hindi/Hinglish (e.g., "bukhar", "dil dard", "kamar dard")</li>
+            <li>Confirm the suggested department with "हाँ" (yes) or "नहीं" (no)</li>
+            <li>Your token will be generated automatically</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ===== Web Speech API Voice Assistant =====
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const synth = window.speechSynthesis;
+
+// State variables
+let recognition = null;
+let assistantState = 'idle';
+let pendingDepartment = null;
+let isListening = false;
+let selectedVoice = null;
+let lastRecognitionSucceeded = false;
+let recognitionRestartCount = 0;
+const maxRecognitionRestartAttempts = 5;
+let currentTokenId = null;
+
+// DOM Elements
+const voiceWarningEl = document.getElementById('voiceWarning');
+const warningTextEl = document.getElementById('warningText');
+const voiceStatusEl = document.getElementById('voiceStatus');
+const transcriptBox = document.getElementById('transcriptBox');
+const conversationArea = document.getElementById('conversationArea');
+const startButton = document.getElementById('startButton');
+const retryButton = document.getElementById('retryButton');
+const microphoneIcon = document.getElementById('microphoneIcon');
+const statusIndicator = document.getElementById('statusIndicator');
+const tokenResultBox = document.getElementById('tokenResultBox');
+const printButton = document.getElementById('printButton');
+
+const departmentMappings = [
+  {
+    code: 'GEN',
+    name: 'General OPD',
+    keywords: ['bukhar', 'बुखार', 'fever', 'sardi', 'सर्दी', 'khansi', 'खांसी', 'cough', 'pet dard', 'पेट दर्द', 'pet me dard', 'gas', 'गैस', 'acidity', 'weakness', 'कमजोरी', 'kamzori', 'ulti', 'sir dard', 'सर दर्द','sar me dard','सर में दर्द','headache','vomiting']
+  },
+  {
+    code: 'CARD',
+    name: 'Cardiology',
+    keywords: ['dil', 'दिल', 'dil dard', 'दिल दर्द', 'chest pain', 'heart', 'bp', 'बीपी', 'blood pressure', 'dhadkan', 'धड़कन', 'heart pain', 'palpitation']
+  },
+  {
+    code: 'ENT',
+    name: 'ENT',
+    keywords: ['gale me dard', 'गले में दर्द', 'gala dard', 'गला दर्द', 'throat pain', 'sore throat', 'tonsils', 'kaan me dard', 'कान में दर्द', 'ear pain', 'kaan bajna', 'कान बजना', 'sunai kam dena', 'सुनी कम देना', 'naak me dard', 'नाक में दर्द', 'nose pain', 'naak band', 'नाक बंद', 'sinus', 'sinusitis', 'naak se khoon', 'नाक से खून', 'voice problem', 'awaaz baith gayi', 'आवाज़ बैठ गयी', 'आवाज़ बैठ गई']
+  },
+  {
+    code: 'ORTH',
+    name: 'Orthopaedics',
+    keywords: ['ghutna', 'घुटना', 'ghutna dard', 'घुटना दर्द', 'kamar', 'कमर', 'kamar dard', 'कमर दर्द', 'back pain', 'body pain', 'joint pain', 'jodo', 'जोड़', 'jodo dard', 'जोड़ दर्द', 'jodo me dard', 'jodon me dard', 'jodon ka dard', 'jodo ka dard', 'jodon mein dard', 'jodo mein dard', 'haadiyo me dard', 'हाडियों में दर्द', 'haddiyo me dard', 'हड्डियों में दर्द', 'haddi', 'हड्डी', 'haddi dard', 'हड्डी दर्द', 'fracture', 'फ्रैक्चर','ghutne me dard','mere ghutne me pain hai']
+  },
+  {
+    code: 'PED',
+    name: 'Pediatrics',
+    keywords: ['baccha', 'बच्चा', 'baby', 'बेबी', 'vaccine', 'vaccination', 'वैक्सीनेशन', 'newborn', 'नवजात', 'child', 'बच्चे']
+  },
+  {
+    code: 'NEUR',
+    name: 'Neurology',
+    keywords: ['sar dard', 'सिर दर्द', 'सिर में दर्द', 'naso me dard', 'naso me dard', 'nas dard', 'naso dard', 'nose dard', 'naso se dard', 'nas ka dard', 'jhunjhuni', 'झुनझुनी', 'jhunjhuni dard', 'झुनझुनी दर्द', 'migraine', 'माइग्रेन', 'chakkar', 'चक्कर', 'dizziness','naso me dard', 'naso mein dard', 'nas dard', 'nerve pain', 'nerves pain', 'nerves', 'naso ka dard', 'नसों में दर्द', 'नस दर्द', 'numbness', 'jhunjhuni', 'झुनझुनी']
+  }
+];
+
+function initializeVoices() {
+  if (!synth) {
+    voiceWarningEl.innerText = 'Speech synthesis not available on this device.';
+    voiceWarningEl.style.display = 'block';
+    voiceStatusEl.innerText = 'Text mode (no speech synthesis).';
+    return;
+  }
+
+  const voices = synth.getVoices() || [];
+  const hindiVoices = voices.filter(v => (v.lang || '').toLowerCase().startsWith('hi'));
+  selectedVoice = hindiVoices.find(v => (v.name || '').toLowerCase().includes('female')) || hindiVoices[0];
+}
+
+function updateStatus(status, indicator = 'idle') {
+  voiceStatusEl.innerText = status;
+  statusIndicator.className = 'status-indicator ' + indicator;
+}
+
+function addMessage(sender, text) {
+  if (conversationArea.querySelector('.conversation-empty')) {
+    conversationArea.innerHTML = '';
+  }
+  
+  const messageEl = document.createElement('div');
+  messageEl.className = 'message ' + sender;
+  
+  const iconEl = document.createElement('div');
+  iconEl.className = 'message-icon';
+  iconEl.innerText = sender === 'assistant' ? '🤖' : '👤';
+  
+  const contentEl = document.createElement('div');
+  contentEl.className = 'message-content';
+  contentEl.innerText = text;
+  
+  messageEl.appendChild(iconEl);
+  messageEl.appendChild(contentEl);
+  conversationArea.appendChild(messageEl);
+  conversationArea.scrollTop = conversationArea.scrollHeight;
+}
+
+function speak(text) {
+  if (!synth) return;
+
+  console.log("[VOICE] Full text to speak:", text);
+
+  // Remove any English helper text inside parentheses before speaking
+  let hindiText = text.replace(/\([^)]*\)/g, '');
+  hindiText = hindiText
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line)
+    .join(' ');
+
+  console.log("[VOICE] Hindi text being spoken:", hindiText);
+
+  updateStatus('Assistant Speaking', 'speaking');
+
+  // Split text into chunks if longer than 150 characters
+  let chunks = [];
+  if (hindiText.length > 150) {
+    // Split by sentences (period, question mark, exclamation mark)
+    const sentences = hindiText.match(/[^.!?]+[.!?]+/g) || [hindiText];
+    let currentChunk = '';
+
+    for (let sentence of sentences) {
+      if ((currentChunk + sentence).length > 150) {
+        if (currentChunk.trim()) chunks.push(currentChunk.trim());
+        currentChunk = sentence.trim();
+      } else {
+        currentChunk += sentence;
+      }
+    }
+    if (currentChunk.trim()) chunks.push(currentChunk.trim());
+  } else {
+    chunks = [hindiText];
+  }
+
+  console.log("[VOICE] Split into", chunks.length, "chunk(s)");
+
+  // Function to speak chunks sequentially
+  let chunkIndex = 0;
+
+  function speakNextChunk() {
+    if (chunkIndex >= chunks.length) {
+      console.log("[VOICE] Full message completed");
+
+      // Don't auto-restart if token generation is complete
+      if (assistantState === 'completed') {
+        console.log("[VOICE] Token generated - not restarting recognition");
+        updateStatus('✅ Token Generated Successfully', 'success');
+        return;
+      }
+
+      updateStatus('Listening...', 'listening');
+      startListening();
+      return;
+    }
+
+    const chunk = chunks[chunkIndex];
+    console.log("[VOICE] Speaking chunk:", chunk);
+
+    const utterance = new SpeechSynthesisUtterance(chunk);
+    utterance.voice = selectedVoice;
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+
+    utterance.onend = () => {
+      console.log("[VOICE] Chunk completed");
+      chunkIndex++;
+      speakNextChunk();
+    };
+
+    utterance.onerror = (e) => {
+      console.error('[VOICE] Speech error:', e);
+      updateStatus('Ready', 'idle');
+    };
+
+    synth.speak(utterance);
+  }
+
+  speakNextChunk();
+}
+
+function startListening() {
+  if (!recognition) {
+    updateStatus('Recognition not available', 'idle');
+    return;
+  }
+  
+  isListening = true;
+  updateStatus('Listening...', 'listening');
+  microphoneIcon.classList.add('listening');
+  transcriptBox.innerText = '...';
+  
+  try {
+    recognition.start();
+  } catch (e) {
+    console.log('Recognition already started');
+  }
+}
+
+// ===== POSITIVE RESPONSE DETECTION =====
+function isPositiveResponse(text) {
+  // English phrases
+  const positiveEnglish = [
+    'haan', 'haan ji', 'haan haan', 'ji', 'ji haan', 'yes', 'yes please',
+    'ok', 'okay', 'theek hai', 'thik hai', 'sahi hai', 'bilkul', 'bilkul sahi',
+    'correct', 'right', 'kar do', 'generate karo', 'token bana do', 'haan kar do',
+    'yes generate', 'proceed', 'continue'
+  ];
+  
+  // Hindi/Devanagari variants
+  const positiveHindi = [
+    'हाँ', 'हाँ जी', 'जी', 'ठीक है', 'सही है', 'बिल्कुल', 'हां'
+  ];
+  
+  const normalized = text.toLowerCase().trim();
+  
+  for (let phrase of positiveEnglish) {
+    if (normalized.includes(phrase.toLowerCase())) {
+      return true;
+    }
+  }
+  
+  for (let phrase of positiveHindi) {
+    if (text.includes(phrase)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// ===== NEGATIVE RESPONSE DETECTION =====
+function isNegativeResponse(text) {
+  // English phrases
+  const negativeEnglish = [
+    'nahi', 'nahi ji', 'no', 'cancel', 'galat', 'wrong',
+    'mat karo', 'stop', 'nahi chahiye', 'cancel karo'
+  ];
+  
+  // Hindi/Devanagari variants
+  const negativeHindi = [
+    'नहीं', 'ना', 'गलत'
+  ];
+  
+  const normalized = text.toLowerCase().trim();
+  
+  for (let phrase of negativeEnglish) {
+    if (normalized.includes(phrase.toLowerCase())) {
+      return true;
+    }
+  }
+  
+  for (let phrase of negativeHindi) {
+    if (text.includes(phrase)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function initializeRecognition() {
+  if (!SpeechRecognition) {
+    updateStatus('Speech Recognition not available', 'idle');
+    voiceWarningEl.innerText = 'Speech recognition is not supported on this browser.';
+    voiceWarningEl.style.display = 'block';
+    startButton.disabled = true;
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'hi-IN';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onstart = () => {
+    updateStatus('Listening...', 'listening');
+    microphoneIcon.classList.add('listening');
+  };
+
+  recognition.onresult = (event) => {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript + ' ';
+    }
+    transcript = transcript.trim();
+    transcriptBox.innerText = transcript || '—';
+
+    if (event.results[0].isFinal) {
+      lastRecognitionSucceeded = true;
+      recognitionRestartCount = 0;
+      handleUserInput(transcript);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    console.error('Recognition error:', e.error);
+    updateStatus('Error: ' + e.error, 'idle');
+    microphoneIcon.classList.remove('listening');
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    microphoneIcon.classList.remove('listening');
+  };
+}
+
+function handleUserInput(text) {
+  if (!text.trim()) return;
+
+  addMessage('user', text);
+  updateStatus('Processing...', 'processing');
+
+  // DEBUG LOGGING
+  const normalized = text.toLowerCase();
+  const isPositive = isPositiveResponse(text);
+  const isNegative = isNegativeResponse(text);
+  const triage = triageDepartment(text);
+  console.log("RAW =", text);
+  console.log("NORMALIZED =", normalized);
+  console.log("POSITIVE =", isPositive);
+  console.log("NEGATIVE =", isNegative);
+  console.log("STATE =", assistantState);
+  console.log("[TRIAGE]", text, triage.department ? triage.department.name : null, triage.confidence);
+
+  if (assistantState === 'idle') {
+    if (triage.department && triage.confidence >= 0.5) {
+      pendingDepartment = triage.department;
+      assistantState = 'awaiting_confirmation';
+      const confirmMsg = `आपको ${pendingDepartment.name} में भेजा जाएगा।\n\nअगर सही है तो 'हाँ' या 'ठीक है' बोलिए।\n\nअगर गलत है तो 'नहीं' बोलिए।\n\n(You will be sent to ${pendingDepartment.name}. Say 'yes' or 'okay' if correct. Say 'no' if incorrect.)`;
+      addMessage('assistant', confirmMsg);
+      speak(confirmMsg);
+    } else {
+      assistantState = 'awaiting_symptom';
+      const greetingMsg = 'कृपया अपनी पूरी समस्या बताइए। (Please describe your complete problem)';
+      addMessage('assistant', greetingMsg);
+      speak(greetingMsg);
+    }
+  } else if (assistantState === 'awaiting_symptom') {
+    if (triage.department && triage.confidence >= 0.5) {
+      pendingDepartment = triage.department;
+      assistantState = 'awaiting_confirmation';
+      const confirmMsg = `आपको ${pendingDepartment.name} में भेजा जाएगा।\n\nअगर सही है तो 'हाँ' या 'ठीक है' बोलिए।\n\nअगर गलत है तो 'नहीं' बोलिए।\n\n(You will be sent to ${pendingDepartment.name}. Say 'yes' or 'okay' if correct. Say 'no' if incorrect.)`;
+      addMessage('assistant', confirmMsg);
+      speak(confirmMsg);
+    } else {
+      const clarifyMsg1 = 'कृपया अपनी समस्या स्पष्ट करें। (Please clarify your problem)';
+      addMessage('assistant', clarifyMsg1);
+      speak(clarifyMsg1);
+    }
+  } else if (assistantState === 'awaiting_confirmation') {
+    // Check if user confirmed
+    if (isPositiveResponse(text)) {
+      console.log("POSITIVE CONFIRMATION DETECTED - GENERATING TOKEN");
+      generateToken();
+    } else if (isNegativeResponse(text)) {
+      // User said no - go back to symptom input
+      console.log("NEGATIVE CONFIRMATION DETECTED - ASKING AGAIN");
+      assistantState = 'awaiting_symptom';
+      const retryMsg = 'कृपया अपनी समस्या फिर से बताइए। (Please describe your problem again)';
+      addMessage('assistant', retryMsg);
+      speak(retryMsg);
+    } else {
+      // Unclear response - ask for confirmation again
+      console.log("UNCLEAR RESPONSE - ASKING FOR CONFIRMATION AGAIN");
+      const clarifyMsg = `कृपया स्पष्ट करें:\n\nहाँ कहें अगर सही है। नहीं कहें अगर गलत है।\n\n(Please clarify: Say yes if correct. Say no if incorrect.)`;
+      addMessage('assistant', clarifyMsg);
+      speak(clarifyMsg);
+    }
+  }
+}
+
+function triageDepartment(text) {
+  const lowerText = text.toLowerCase();
+  let bestDepartment = null;
+  let bestScore = 0;
+
+  for (let dept of departmentMappings) {
+    let score = 0;
+    for (let keyword of dept.keywords) {
+      const normalizedKeyword = keyword.toLowerCase();
+      if (lowerText.includes(normalizedKeyword)) {
+        const wordCount = normalizedKeyword.split(/\s+/).filter(Boolean).length;
+        score += Math.min(wordCount, 3);
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestDepartment = dept;
+    }
+  }
+
+  const confidence = bestScore > 0 ? Math.min(1, bestScore / 2) : 0;
+  if (bestDepartment && bestDepartment.code === 'ENT') {
+    console.log("[ENT MATCH]", text, "-> ENT");
+  }
+  return { department: bestDepartment, confidence };
+}
+
+
+function generateToken() {
+  if (!pendingDepartment) return;
+
+  updateStatus('Generating Token...', 'processing');
+  assistantState = 'generating';
+
+  fetch('{{ url_for("token.generate_token_api") }}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dept_code: pendingDepartment.code })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // ===== TOKEN GENERATED SUCCESSFULLY - STOP ASSISTANT =====
+      console.log("[VOICE] Token generated - stopping assistant");
+      
+      // Stop recognition immediately
+      try {
+        recognition.stop();
+        console.log("[VOICE] Recognition stopped");
+      } catch (e) {
+        console.log("[VOICE] Recognition stop error:", e);
+      }
+      
+      // Prevent any further listening
+      isListening = false;
+      assistantState = 'completed';
+      console.log("[VOICE] Session completed");
+      
+      // Update UI to show completion
+      updateStatus('✅ Token Generated Successfully', 'success');
+      microphoneIcon.classList.remove('listening');
+      microphoneIcon.style.opacity = '0.7';
+      
+      currentTokenId = data.token.token_number;
+      const queuePos = data.token.queue_position || 'N/A';
+      const waitTime = data.token.estimated_wait_time || '10-15';
+
+      const successMsg = `आपका टोकन ${data.token.token_number} है। धन्यवाद! (Your token is ${data.token.token_number}. Thank you!)`;
+      addMessage('assistant', successMsg);
+      speak(successMsg);
+
+      tokenResultBox.style.display = 'block';
+      document.getElementById('resultDepartment').innerText = pendingDepartment.name;
+      document.getElementById('resultToken').innerText = data.token.token_number;
+      document.getElementById('resultPosition').innerText = queuePos;
+      document.getElementById('resultWait').innerText = waitTime + ' min';
+
+      startButton.style.display = 'none';
+      retryButton.style.display = 'none';
+      printButton.style.display = 'inline-flex';
+      printButton.href = `{{ url_for('token.print_token', token_id='') }}` + data.token._id;
+    } else {
+      const errorMsg = 'टोकन जेनरेट करने में त्रुटि। कृपया पुनः प्रयास करें। (Error generating token. Please try again)';
+      addMessage('assistant', errorMsg);
+      speak(errorMsg);
+      assistantState = 'awaiting_confirmation';
+      updateStatus('Error', 'idle');
+      retryButton.style.display = 'inline-flex';
+    }
+  })
+  .catch(e => {
+    console.error('Error:', e);
+    const networkErrorMsg = 'नेटवर्क त्रुटि। कृपया पुनः प्रयास करें। (Network error. Please try again)';
+    addMessage('assistant', networkErrorMsg);
+    speak(networkErrorMsg);
+    updateStatus('Error', 'idle');
+    retryButton.style.display = 'inline-flex';
+  });
+}
+
+startButton.addEventListener('click', () => {
+  // Reset state for new session
+  assistantState = 'idle';
+  pendingDepartment = null;
+  isListening = false;
+  conversationArea.innerHTML = '';
+  startButton.disabled = true;
+  
+  // Reset microphone UI
+  microphoneIcon.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  microphoneIcon.style.opacity = '1';
+  microphoneIcon.classList.remove('listening');
+  
+  // Hide token result box
+  tokenResultBox.style.display = 'none';
+  
+  // Reset buttons
+  startButton.style.display = 'inline-flex';
+  retryButton.style.display = 'none';
+  printButton.style.display = 'none';
+  
+  console.log("[VOICE] Starting new voice assistant session");
+  
+  const greeting = 'नमस्ते। कृपया अपनी समस्या बताइए।';
+  addMessage('assistant', greeting);
+  speak(greeting);
+});
+
+retryButton.addEventListener('click', () => {
+  location.reload();
+});
+
+window.addEventListener('load', () => {
+  initializeVoices();
+  initializeRecognition();
+  if (synth) synth.onvoiceschanged = initializeVoices;
+});
+</script>
+{% endblock %}

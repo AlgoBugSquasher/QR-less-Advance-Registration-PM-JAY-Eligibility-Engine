@@ -16,7 +16,7 @@ token_bp = Blueprint('token', __name__)
 @login_required
 def departments():
     """
-    Department selection page
+    Department selection page (redesigned)
     Shows list of departments with queue information
     """
     user_info = get_current_user_info()
@@ -29,7 +29,7 @@ def departments():
         dept['estimated_wait'] = queue_info.get('estimated_wait_time', 0) if queue_info else 0
     
     return render_template(
-        'departments.html',
+        'manual_token_redesigned.html',
         user=user_info,
         departments=departments
     )
@@ -127,6 +127,88 @@ def voice_generate_token():
         return jsonify({'success': False, 'message': 'An error occurred while generating the token.'}), 500
 
 
+@token_bp.route('/generate-token-api', methods=['POST'])
+@login_required
+def generate_token_api():
+    """
+    API endpoint to generate token (works for both voice assistant and manual selection)
+    Returns JSON response
+    """
+    user_info = get_current_user_info()
+    request_data = request.get_json(silent=True) or {}
+    dept_code = request_data.get('dept_code')
+
+    if not dept_code:
+        return jsonify({'success': False, 'error': 'Department code is required'}), 400
+
+    department = Department.get_department_by_code(dept_code)
+    if not department:
+        return jsonify({'success': False, 'error': 'Invalid department selected'}), 400
+
+    try:
+        token = Token.create_token(
+            user_info['user_id'],
+            str(department['_id']),
+            department['dept_code'],
+            department['name']
+        )
+
+        if not token:
+            return jsonify({'success': False, 'error': 'Failed to generate token'}), 500
+
+        # Get queue info for the token
+        queue_info = Department.get_department_with_queue_info(dept_code)
+        queue_position = queue_info.get('current_queue', 1) if queue_info else 1
+        estimated_wait = queue_info.get('estimated_wait_time', 10) if queue_info else 10
+
+        return jsonify({
+            'success': True,
+            'token': {
+                '_id': str(token.get('_id')),
+                'token_number': token.get('token_number'),
+                'dept_code': token.get('dept_code'),
+                'dept_name': token.get('dept_name'),
+                'queue_position': queue_position,
+                'estimated_wait_time': estimated_wait,
+                'status': token.get('status')
+            }
+        })
+
+    except Exception as e:
+        print(f"Error generating token: {e}")
+        return jsonify({'success': False, 'error': 'An error occurred while generating the token'}), 500
+
+
+@token_bp.route('/api/departments/stats')
+@login_required
+def get_departments_stats():
+    """
+    API endpoint to get fresh department statistics
+    Returns JSON with queue info for all departments
+    Used by frontend to update department cards after token generation
+    """
+    try:
+        departments = Department.get_all_departments()
+        
+        # Add current queue info for each department
+        stats = []
+        for dept in departments:
+            queue_info = Department.get_department_with_queue_info(dept['dept_code'])
+            stats.append({
+                'dept_code': dept['dept_code'],
+                'name': dept['name'],
+                'icon': dept.get('icon', ''),
+                'current_queue': queue_info.get('current_queue', 0) if queue_info else 0,
+                'estimated_wait': queue_info.get('estimated_wait_time', 0) if queue_info else 0
+            })
+        
+        return jsonify({'success': True, 'departments': stats})
+    
+    except Exception as e:
+        print(f"Error fetching department stats: {e}")
+        return jsonify({'success': False, 'error': 'Failed to fetch department statistics'}), 500
+
+
 @token_bp.route('/confirm/<token_id>')
 @login_required
 def confirm(token_id):
@@ -181,6 +263,52 @@ def confirm(token_id):
         print(f"Error in confirm route: {e}")
         flash('An error occurred', 'danger')
         return redirect(url_for('main.dashboard'))
+
+
+@token_bp.route('/token-result/<token_id>')
+@login_required
+def token_result(token_id):
+    """
+    Token result page (redesigned)
+    Shows token details after successful generation
+    
+    Args:
+        token_id (str): Token ID
+    """
+    user_info = get_current_user_info()
+    
+    try:
+        # Get token details
+        token_doc = Token.get_token_by_id(token_id)
+        
+        if not token_doc:
+            flash('Token not found', 'danger')
+            return redirect(url_for('main.home_dashboard'))
+        
+        # Verify token belongs to current user
+        if str(token_doc.get('user_id')) != user_info['user_id']:
+            flash('Unauthorized access', 'danger')
+            return redirect(url_for('main.home_dashboard'))
+        
+        # Get department info
+        department = Department.get_department_by_code(token_doc.get('dept_code'))
+        
+        # Calculate arrival info
+        arrival_info = calculate_estimated_arrival_time(token_doc.get('queue_position', 1))
+        
+        return render_template(
+            'token_result_redesigned.html',
+            user=user_info,
+            token=token_doc,
+            department=department,
+            queue_position=token_doc.get('queue_position', 1),
+            estimated_wait_time=token_doc.get('estimated_wait_time', 10)
+        )
+    
+    except Exception as e:
+        print(f"Error in token result route: {e}")
+        flash('An error occurred', 'danger')
+        return redirect(url_for('main.home_dashboard'))
 
 
 @token_bp.route('/print-token/<token_id>')
@@ -308,23 +436,36 @@ def cancel_token(token_id):
         token_doc = Token.get_token_by_id(token_id)
         
         if not token_doc:
-            return jsonify({'error': 'Token not found'}), 404
+            flash('Invalid token ID. Token not found.', 'danger')
+            return redirect(url_for('token.my_tokens'))
         
         # Verify token belongs to current user
         if str(token_doc.get('user_id')) != user_info['user_id']:
-            return jsonify({'error': 'Unauthorized'}), 403
+            flash('Unauthorized token cancellation attempt.', 'danger')
+            return redirect(url_for('token.my_tokens'))
+        
+        # Prevent cancelling already cancelled or completed tokens
+        if token_doc.get('status') in ['cancelled', 'completed', 'skipped']:
+            status = token_doc.get('status')
+            if status == 'cancelled':
+                flash('This token has already been cancelled.', 'warning')
+            elif status == 'completed':
+                flash('This token has already been completed and cannot be cancelled.', 'warning')
+            else:
+                flash('This token cannot be cancelled.', 'warning')
+            return redirect(url_for('token.my_tokens'))
         
         # Cancel token
         cancelled = Token.cancel_token(token_id)
         
-        if cancelled:
-            flash('Token cancelled successfully', 'success')
+        if cancelled and cancelled.get('status') == 'cancelled':
+            flash('Token cancelled successfully.', 'success')
             return redirect(url_for('token.my_tokens'))
         else:
-            flash('Failed to cancel token', 'danger')
+            flash('Failed to cancel token. Please try again.', 'danger')
             return redirect(url_for('token.my_tokens'))
     
     except Exception as e:
         print(f"Error cancelling token: {e}")
-        flash('An error occurred', 'danger')
+        flash('An error occurred while cancelling the token.', 'danger')
         return redirect(url_for('token.my_tokens'))
